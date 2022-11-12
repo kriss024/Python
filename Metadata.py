@@ -22,6 +22,13 @@ test_dataframe = pd.DataFrame({'float64': [1.0, 3.0, 4, -5, 6],
                     'nones': [None, None, None, None, None]
                    })
 
+def remove_all_by_values(list_obj, values):
+    list_obj_rem = list_obj.copy()
+    for value in set(values):
+        while value in list_obj_rem:
+            list_obj_rem.remove(value)
+    return list_obj_rem
+
 def dataframe_metadata(data):
 
     if isinstance(data, pd.DataFrame):
@@ -67,38 +74,36 @@ def dataframe_metadata(data):
         return None
 
 
-def calculate_woe(data, column, default_column):
+def calculate_woe_iv(dataset, feature, target):
 
-    if isinstance(data, pd.DataFrame):
+    if isinstance(dataset, pd.DataFrame):
 
-        total_number = 'total_number'
-        number_bad = 'number_bad'
-        number_good = 'number_good'
-        percent_total = 'percent_total'
-        percent_bad = 'percent_bad'
-        percent_good = 'percent_good'
-        distribution_bad = 'distribution_bad'
-        distribution_good = 'distribution_good'
-        woe = 'woe'
-        good_minus_bad = 'good_minus_bad'
-        iv = 'iv'
+        lst = []
 
-        result = data.groupby(column, dropna=False)[default_column].aggregate(['count','sum'])
-        result.columns = [total_number, number_bad]
-        result.reset_index(inplace=True)
-        result[number_good] = result[total_number] - result[number_bad]
-        sum_ = result.agg('sum')
-        result[percent_total] = (result[total_number] / sum_[total_number]) * 100
-        result[percent_bad] = (result[number_bad] / sum_[total_number]) * 100
-        result[percent_good] = (result[number_good] / sum_[total_number]) * 100
-        result[distribution_bad] = result[number_bad] / sum_[number_bad]
-        result[distribution_good] = result[number_good] / sum_[number_good]
-        result[woe] = np.log(result[distribution_good] / result[distribution_bad])
-        result[good_minus_bad] = result[distribution_good] - result[distribution_bad]
-        result[iv] = result[good_minus_bad] * result[woe]
-        iv_calculated = result[iv].agg('sum')
-
-        return result, iv_calculated
+        values = dataset[feature].unique()
+        for count, value in enumerate(values):
+            lst.append({
+                'Name' : feature,
+                'Value': value,
+                'Total': dataset[dataset[feature] == value].shape[0],
+                'Good': dataset[(dataset[feature] == value) & (dataset[target] == 0)].shape[0],
+                'Bad': dataset[(dataset[feature] == value) & (dataset[target] == 1)].shape[0]
+            })
+        
+        dset = pd.DataFrame(lst)
+        dset['Share_Total'] = dset['Total'] / dset['Total'].sum()
+        dset['Share_Good'] = dset['Good'] / dset['Total']
+        dset['Share_Bad'] = dset['Bad'] / dset['Total']
+        dset['Distr_Good'] = dset['Good'] / dset['Good'].sum()
+        dset['Distr_Bad'] = dset['Bad'] / dset['Bad'].sum()
+        dset['WoE'] = np.log(dset['Distr_Good'] / dset['Distr_Bad'])
+        dset = dset.replace({'WoE': {np.inf: 0, -np.inf: 0}})
+        dset['IV'] = (dset['Distr_Good'] - dset['Distr_Bad']) * dset['WoE']
+        iv = dset['IV'].sum()
+        
+        dset = dset.sort_values(by='WoE')
+        
+        return dset, iv
 
     else:
-        return None
+            return None
