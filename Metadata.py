@@ -65,3 +65,40 @@ def dataframe_metadata(data):
 
     else:
         return None
+
+
+def calculate_woe(data, column, default_column):
+
+    if isinstance(data, pd.DataFrame):
+
+        total_number = 'total_number'
+        number_bad = 'number_bad'
+        number_good = 'number_good'
+        percent_total = 'percent_total'
+        percent_bad = 'percent_bad'
+        percent_good = 'percent_good'
+        distribution_bad = 'distribution_bad'
+        distribution_good = 'distribution_good'
+        woe = 'woe'
+        good_minus_bad = 'good_minus_bad'
+        iv = 'iv'
+
+        result = data.groupby(column, dropna=False)[default_column].aggregate(['count','sum'])
+        result.columns = [total_number, number_bad]
+        result.reset_index(inplace=True)
+        result[number_good] = result[total_number] - result[number_bad]
+        sum_ = result.agg('sum')
+        result[percent_total] = (result[total_number] / sum_[total_number]) * 100
+        result[percent_bad] = (result[number_bad] / sum_[total_number]) * 100
+        result[percent_good] = (result[number_good] / sum_[total_number]) * 100
+        result[distribution_bad] = result[number_bad] / sum_[number_bad]
+        result[distribution_good] = result[number_good] / sum_[number_good]
+        result[woe] = np.log(result[distribution_good] / result[distribution_bad])
+        result[good_minus_bad] = result[distribution_good] - result[distribution_bad]
+        result[iv] = result[good_minus_bad] * result[woe]
+        iv_calculated = result[iv].agg('sum')
+
+        return result, iv_calculated
+
+    else:
+        return None
