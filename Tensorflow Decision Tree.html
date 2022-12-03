@@ -36,6 +36,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 .highlight .m { color: var(--jp-mirror-editor-number-color) } /* Literal.Number */
 .highlight .s { color: var(--jp-mirror-editor-string-color) } /* Literal.String */
 .highlight .ow { color: var(--jp-mirror-editor-operator-color); font-weight: bold } /* Operator.Word */
+.highlight .pm { color: var(--jp-mirror-editor-punctuation-color) } /* Punctuation.Marker */
 .highlight .w { color: var(--jp-mirror-editor-variable-color) } /* Text.Whitespace */
 .highlight .mb { color: var(--jp-mirror-editor-number-color) } /* Literal.Number.Bin */
 .highlight .mf { color: var(--jp-mirror-editor-number-color) } /* Literal.Number.Float */
@@ -14464,10 +14465,6 @@ a.anchor-link {
   display: none;
 }
 
-.highlight  {
-  margin: 0.4em;
-}
-
 /* Input area styling */
 .jp-InputArea {
   overflow: hidden;
@@ -14477,9 +14474,26 @@ a.anchor-link {
   overflow: hidden;
 }
 
-.CodeMirror pre {
+.CodeMirror.cm-s-jupyter .highlight pre {
+/* weird, but --jp-code-padding defined to be 5px but 4px horizontal padding is hardcoded for pre.CodeMirror-line */
+  padding: var(--jp-code-padding) 4px;
   margin: 0;
-  padding: 0;
+
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+
+}
+
+.jp-OutputArea-output pre {
+  line-height: inherit;
+  font-family: inherit;
+}
+
+.jp-RenderedText pre {
+  color: var(--jp-content-font-color1);
+  font-size: var(--jp-code-font-size);
 }
 
 /* Using table instead of flexbox so that we can use break-inside property */
@@ -14572,7 +14586,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
     </script>
     <!-- End of mathjax configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -14580,8 +14594,26 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Install TensorFlow Decision Forests.</span>
+<span class="c1"># !pip3 install tensorflow_decision_forests --upgrade</span>
+<span class="c1"># !pip install tensorflow-addons</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[2]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;TF_CPP_MIN_LOG_LEVEL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;3&#39;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">'TF_CPP_MIN_LOG_LEVEL'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'3'</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -14590,10 +14622,10 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">roc_auc_score</span><span class="p">,</span> <span class="n">f1_score</span><span class="p">,</span> <span class="n">confusion_matrix</span>
 <span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
-<span class="kn">from</span> <span class="nn">tensorflow</span> <span class="kn">import</span> <span class="n">keras</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">import</span> <span class="nn">tensorflow_decision_forests</span> <span class="k">as</span> <span class="nn">tfdf</span>
 <span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">display</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found TensorFlow Decision Forests v&quot;</span> <span class="o">+</span> <span class="n">tfdf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Found TensorFlow Decision Forests v"</span> <span class="o">+</span> <span class="n">tfdf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -14607,15 +14639,13 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Found TensorFlow Decision Forests v1.0.1
+<pre>Found TensorFlow Decision Forests v1.1.0
 </pre>
 </div>
 </div>
@@ -14629,12 +14659,12 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[2]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[3]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># credit_data = pd.read_csv(&#39;german_credit_data.csv&#39;)</span>
-<span class="c1"># credit_data.to_hdf(&#39;credit_data.h5&#39;, key=&#39;df&#39;, mode=&#39;w&#39;)</span>
-<span class="n">credit_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">(</span><span class="s1">&#39;credit_data.h5&#39;</span><span class="p">,</span> <span class="s1">&#39;df&#39;</span><span class="p">)</span>  
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># credit_data = pd.read_csv('german_credit_data.csv')</span>
+<span class="c1"># credit_data.to_hdf('credit_data.h5', key='df', mode='w')</span>
+<span class="n">credit_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">(</span><span class="s1">'credit_data.h5'</span><span class="p">,</span> <span class="s1">'df'</span><span class="p">)</span>  
 <span class="n">display</span><span class="p">(</span><span class="n">credit_data</span><span class="p">)</span>
 </pre></div>
 
@@ -14649,9 +14679,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
@@ -14981,7 +15009,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[3]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[4]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">credit_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -14997,12 +15025,12 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[4]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[5]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Name of the label column.</span>
-<span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;Risk&#39;</span>
-<span class="n">id_column</span> <span class="o">=</span> <span class="s1">&#39;CustomerID&#39;</span>
+<span class="n">label</span> <span class="o">=</span> <span class="s1">'Risk'</span>
+<span class="n">id_column</span> <span class="o">=</span> <span class="s1">'CustomerID'</span>
 <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
 </pre></div>
 
@@ -15017,11 +15045,9 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
-<div class="jp-OutputArea-child">
-
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[4]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[5]:</div>
 
 
 
@@ -15070,11 +15096,11 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[5]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[6]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">label_new</span> <span class="o">=</span> <span class="n">label</span> <span class="o">+</span> <span class="s1">&#39;_target&#39;</span>
-<span class="n">data</span><span class="p">[</span><span class="n">label_new</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s1">&#39;No Risk&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Risk&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">})</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">label_new</span> <span class="o">=</span> <span class="n">label</span> <span class="o">+</span> <span class="s1">'_target'</span>
+<span class="n">data</span><span class="p">[</span><span class="n">label_new</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s1">'No Risk'</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'Risk'</span><span class="p">:</span><span class="mi">1</span><span class="p">})</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">label</span><span class="p">])</span>
 <span class="n">data</span><span class="p">[</span><span class="n">label_new</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
 </pre></div>
@@ -15090,11 +15116,9 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
-<div class="jp-OutputArea-child">
-
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[5]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[6]:</div>
 
 
 
@@ -15143,7 +15167,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[6]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[7]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtypes</span><span class="p">)</span>
@@ -15160,9 +15184,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
@@ -15204,7 +15226,7 @@ dtype: object
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[7]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[8]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">remove_all_by_values</span><span class="p">(</span><span class="n">list_obj</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
@@ -15225,11 +15247,11 @@ dtype: object
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[8]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[9]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">label</span> <span class="o">=</span> <span class="n">label_new</span>
-<span class="n">id_column</span> <span class="o">=</span> <span class="s1">&#39;CustomerID&#39;</span>
+<span class="n">id_column</span> <span class="o">=</span> <span class="s1">'CustomerID'</span>
 <span class="n">outColumns</span> <span class="o">=</span> <span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">id_column</span><span class="p">]</span>
 <span class="c1"># Get  columns whose data type is object i.e. string</span>
 <span class="n">filteredColumns</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dtypes</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">dtypes</span> <span class="o">==</span> <span class="nb">object</span><span class="p">]</span>
@@ -15240,7 +15262,6 @@ dtype: object
 <span class="n">filteredColumns</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dtypes</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">dtypes</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
 <span class="n">objectColumns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">filteredColumns</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
 <span class="n">numericFeatures</span> <span class="o">=</span> <span class="n">remove_all_by_values</span><span class="p">(</span><span class="n">objectColumns</span><span class="p">,</span> <span class="n">outColumns</span><span class="p">)</span>
-
 
 <span class="c1"># Target column name.</span>
 <span class="n">TARGET_COLUMN_NAME</span> <span class="o">=</span> <span class="n">label</span>
@@ -15265,9 +15286,7 @@ dtype: object
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
@@ -15289,15 +15308,15 @@ dtype: object
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[9]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[10]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">train</span> <span class="o">=</span> <span class="mf">0.7</span>
 <span class="n">test</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">train</span>
 <span class="n">label_lst</span> <span class="o">=</span> <span class="p">[</span><span class="n">label</span><span class="p">]</span>
 <span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="n">test</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">label_lst</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Train data shape: </span><span class="si">{</span><span class="n">train_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test data shape: </span><span class="si">{</span><span class="n">test_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Train data shape: </span><span class="si">{</span><span class="n">train_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Test data shape: </span><span class="si">{</span><span class="n">test_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">train_data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
 </pre></div>
 
@@ -15312,9 +15331,7 @@ dtype: object
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
@@ -15325,11 +15342,9 @@ Test data shape: (1501, 22)
 </pre>
 </div>
 </div>
-
-<div class="jp-OutputArea-child">
-
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[9]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[10]:</div>
 
 
 
@@ -15378,7 +15393,7 @@ Test data shape: (1501, 22)
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[10]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[11]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">specify_feature_usages</span><span class="p">():</span>
@@ -15404,12 +15419,12 @@ Test data shape: (1501, 22)
 </div>
 </div>
 
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[11]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[12]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Convert the dataset into a TensorFlow dataset.</span>
@@ -15423,87 +15438,7 @@ Test data shape: (1501, 22)
 </div>
 </div>
 
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-
-
-<div class="jp-OutputArea jp-Cell-outputArea">
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr">
-<pre>/opt/conda/lib/python3.10/site-packages/tensorflow_decision_forests/keras/core_inference.py:873: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only.
-  features_dataframe = dataframe.drop(label, 1)
-/opt/conda/lib/python3.10/site-packages/tensorflow_decision_forests/keras/core_inference.py:873: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only.
-  features_dataframe = dataframe.drop(label, 1)
-</pre>
-</div>
-</div>
-
-</div>
-
-</div>
-
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
-<div class="jp-Cell-inputWrapper">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[12]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-     <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Minimum number of examples in a node.</span>
-<span class="n">MIN_EXAMPLES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">train_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">0.05</span><span class="p">)</span>
-<span class="c1"># Maximum depth of the tree. max_depth=1 means that all trees will be roots.</span>
-<span class="n">MAX_DEPTH</span> <span class="o">=</span> <span class="mi">12</span>
-<span class="c1"># Ratio of the training dataset used to monitor the training. Require to be &gt;0 if early stopping is enabled.</span>
-<span class="n">VALIDATION_RATIO</span> <span class="o">=</span> <span class="mf">0.2</span>
-
-<span class="c1"># Train the model</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">tfdf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">CartModel</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">specify_feature_usages</span><span class="p">(),</span>
-        <span class="n">exclude_non_specified_features</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="c1"># max_depth=MAX_DEPTH,</span>
-        <span class="c1"># min_examples=MIN_EXAMPLES,</span>
-        <span class="c1"># validation_ratio=VALIDATION_RATIO,</span>
-        <span class="n">task</span><span class="o">=</span><span class="n">tfdf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Task</span><span class="o">.</span><span class="n">CLASSIFICATION</span><span class="p">)</span>
-
-<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">PrecisionAtRecall</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)])</span>
-</pre></div>
-
-     </div>
-</div>
-</div>
-</div>
-
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-
-
-<div class="jp-OutputArea jp-Cell-outputArea">
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Use /tmp/tmpfe6aptwz as temporary training directory
-</pre>
-</div>
-</div>
-
-</div>
-
-</div>
-
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -15511,7 +15446,42 @@ Test data shape: (1501, 22)
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[13]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Maximum number of decision trees. The effective number of trained trees can be smaller if early stopping is enabled.</span>
+<span class="n">NUM_TREES</span> <span class="o">=</span> <span class="mi">250</span>
+<span class="c1"># Minimum number of examples in a node.</span>
+<span class="n">MIN_EXAMPLES</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="c1"># Maximum depth of the tree. max_depth=1 means that all trees will be roots.</span>
+<span class="n">MAX_DEPTH</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="c1"># Ratio of the dataset (sampling without replacement) used to train individual trees for the random sampling method.</span>
+<span class="n">SUBSAMPLE</span> <span class="o">=</span> <span class="mf">0.65</span>
+<span class="c1"># Control the sampling of the datasets used to train individual trees.</span>
+<span class="n">SAMPLING_METHOD</span> <span class="o">=</span> <span class="s2">"RANDOM"</span>
+<span class="c1"># Ratio of the training dataset used to monitor the training. Require to be &gt;0 if early stopping is enabled.</span>
+<span class="n">VALIDATION_RATIO</span> <span class="o">=</span> <span class="mf">0.2</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[14]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Train the model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">tfdf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">CartModel</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">specify_feature_usages</span><span class="p">(),</span>
+        <span class="n">exclude_non_specified_features</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="c1"># max_depth=MAX_DEPTH,</span>
+        <span class="n">min_examples</span><span class="o">=</span><span class="n">MIN_EXAMPLES</span><span class="p">,</span>
+        <span class="n">validation_ratio</span><span class="o">=</span><span class="n">VALIDATION_RATIO</span><span class="p">,</span>
+        <span class="n">task</span><span class="o">=</span><span class="n">tfdf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Task</span><span class="o">.</span><span class="n">CLASSIFICATION</span><span class="p">)</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Precision</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Recall</span><span class="p">()])</span>
 </pre></div>
 
      </div>
@@ -15525,99 +15495,105 @@ Test data shape: (1501, 22)
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Warning: Model constructor argument batch_size=349 not supported. See https://www.tensorflow.org/decision_forests/migration for an explanation about the specificities of TF-DF.
+<pre>Use /tmp/tmp0fo8igkh as temporary training directory
 </pre>
 </div>
 </div>
 
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr">
-<pre>WARNING:absl:Model constructor argument batch_size=349 not supported. See https://www.tensorflow.org/decision_forests/migration for an explanation about the specificities of TF-DF.
-</pre>
-</div>
 </div>
 
-<div class="jp-OutputArea-child">
+</div>
 
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[15]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>Reading training dataset...
-Training dataset read in 0:00:02.540426. Found 3499 examples.
+WARNING:tensorflow:From /usr/local/lib/python3.8/dist-packages/tensorflow/python/autograph/pyct/static_analysis/liveness.py:83: Analyzer.lamba_check (from tensorflow.python.autograph.pyct.static_analysis.liveness) is deprecated and will be removed after 2023-09-23.
+Instructions for updating:
+Lambda fuctions will be no more assumed to be used in the statement where they are used, or at least in the same block. https://github.com/tensorflow/tensorflow/issues/56089
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr">
+<pre>WARNING:tensorflow:From /usr/local/lib/python3.8/dist-packages/tensorflow/python/autograph/pyct/static_analysis/liveness.py:83: Analyzer.lamba_check (from tensorflow.python.autograph.pyct.static_analysis.liveness) is deprecated and will be removed after 2023-09-23.
+Instructions for updating:
+Lambda fuctions will be no more assumed to be used in the statement where they are used, or at least in the same block. https://github.com/tensorflow/tensorflow/issues/56089
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
+<pre>Training dataset read in 0:00:02.535552. Found 3499 examples.
 Training model...
-Model trained in 0:00:00.041348
+Model trained in 0:00:00.038575
 Compiling model...
-</pre>
-</div>
-</div>
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr">
-<pre>[INFO kernel.cc:1176] Loading model from path /tmp/tmpfe6aptwz/model/ with prefix da8d26d205904198
-[INFO abstract_model.cc:1248] Engine &#34;RandomForestOptPred&#34; built
-[INFO kernel.cc:1022] Use fast generic engine
-</pre>
-</div>
-</div>
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>WARNING:tensorflow:AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f646a924700&gt; and will run it as-is.
+WARNING:tensorflow:AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f35d1183280&gt; and will run it as-is.
 Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
 Cause: could not get source code
 To silence this warning, decorate the function with @tf.autograph.experimental.do_not_convert
 </pre>
 </div>
 </div>
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr">
-<pre>WARNING:tensorflow:AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f646a924700&gt; and will run it as-is.
+<pre>WARNING:tensorflow:AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f35d1183280&gt; and will run it as-is.
 Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
 Cause: could not get source code
 To silence this warning, decorate the function with @tf.autograph.experimental.do_not_convert
 </pre>
 </div>
 </div>
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>WARNING: AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f646a924700&gt; and will run it as-is.
+<pre>WARNING: AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f35d1183280&gt; and will run it as-is.
 Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
 Cause: could not get source code
 To silence this warning, decorate the function with @tf.autograph.experimental.do_not_convert
@@ -15625,17 +15601,15 @@ Model compiled.
 </pre>
 </div>
 </div>
-
-<div class="jp-OutputArea-child">
-
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[13]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[15]:</div>
 
 
 
 
 <div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>&lt;keras.callbacks.History at 0x7f6468c45270&gt;</pre>
+<pre>&lt;keras.callbacks.History at 0x7f35d12995e0&gt;</pre>
 </div>
 
 </div>
@@ -15649,10 +15623,10 @@ Model compiled.
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[14]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[16]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;model.html&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">html_file</span><span class="p">:</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"model.html"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">html_file</span><span class="p">:</span>
     <span class="n">html_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">tfdf</span><span class="o">.</span><span class="n">model_plotter</span><span class="o">.</span><span class="n">plot_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="n">MAX_DEPTH</span><span class="p">))</span>
 </pre></div>
 
@@ -15666,7 +15640,7 @@ Model compiled.
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[15]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[17]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#print(model.summary())</span>
@@ -15675,11 +15649,11 @@ Model compiled.
 <span class="n">model</span><span class="o">.</span><span class="n">make_inspector</span><span class="p">()</span><span class="o">.</span><span class="n">features</span><span class="p">()</span>
 
 <span class="c1"># The feature importances</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Available variable importances:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Available variable importances:"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">importance</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">make_inspector</span><span class="p">()</span><span class="o">.</span><span class="n">variable_importances</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">importance</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">,</span> <span class="n">importance</span><span class="p">)</span>
 
-<span class="n">model</span><span class="o">.</span><span class="n">make_inspector</span><span class="p">()</span><span class="o">.</span><span class="n">variable_importances</span><span class="p">()[</span><span class="s2">&quot;SUM_SCORE&quot;</span><span class="p">]</span>
+<span class="n">model</span><span class="o">.</span><span class="n">make_inspector</span><span class="p">()</span><span class="o">.</span><span class="n">variable_importances</span><span class="p">()[</span><span class="s2">"SUM_SCORE"</span><span class="p">]</span>
 </pre></div>
 
      </div>
@@ -15693,9 +15667,7 @@ Model compiled.
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
@@ -15704,37 +15676,34 @@ Model compiled.
 <pre>Available variable importances:
 	 NUM_AS_ROOT
 	 SUM_SCORE
-	 NUM_NODES
 	 MEAN_MIN_DEPTH
+	 NUM_NODES
 </pre>
 </div>
 </div>
-
-<div class="jp-OutputArea-child">
-
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[15]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[17]:</div>
 
 
 
 
 <div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>[(&#34;EmploymentDuration&#34; (4; #5), 306.952433668077),
- (&#34;CheckingStatus&#34; (4; #1), 104.42077428288758),
- (&#34;LoanDuration&#34; (1; #14), 62.80766389518976),
- (&#34;Age&#34; (1; #0), 40.701236886903644),
- (&#34;CreditHistory&#34; (4; #2), 31.263962658122182),
- (&#34;Sex&#34; (4; #18), 31.05180247500539),
- (&#34;Housing&#34; (4; #9), 29.11526518687606),
- (&#34;OthersOnLoan&#34; (4; #16), 25.114207178354263),
- (&#34;CurrentResidenceDuration&#34; (1; #3), 23.401690114289522),
- (&#34;LoanPurpose&#34; (4; #15), 21.98563720472157),
- (&#34;ExistingCreditsCount&#34; (1; #6), 18.241982291452587),
- (&#34;LoanAmount&#34; (1; #13), 15.910028874874115),
- (&#34;OwnsProperty&#34; (4; #17), 9.100025609135628),
- (&#34;ExistingSavings&#34; (4; #7), 8.510946996510029),
- (&#34;Telephone&#34; (4; #19), 5.046664588153362),
- (&#34;Job&#34; (4; #12), 4.766048341989517)]</pre>
+<pre>[(&#34;EmploymentDuration&#34; (4; #5), 256.6934921219945),
+ (&#34;CheckingStatus&#34; (4; #1), 84.52491608262062),
+ (&#34;LoanDuration&#34; (1; #14), 65.07411399111152),
+ (&#34;OwnsProperty&#34; (4; #17), 41.19595599360764),
+ (&#34;Age&#34; (1; #0), 36.2831989005208),
+ (&#34;Sex&#34; (4; #18), 24.32262583076954),
+ (&#34;Housing&#34; (4; #9), 23.578131403774023),
+ (&#34;LoanPurpose&#34; (4; #15), 21.54361115768552),
+ (&#34;CurrentResidenceDuration&#34; (1; #3), 17.399549037218094),
+ (&#34;OthersOnLoan&#34; (4; #16), 16.616584286093712),
+ (&#34;ExistingCreditsCount&#34; (1; #6), 9.452959434129298),
+ (&#34;Job&#34; (4; #12), 8.08851258456707),
+ (&#34;InstallmentPlans&#34; (4; #11), 3.9501316845417023),
+ (&#34;ExistingSavings&#34; (4; #7), 1.6278669834136963),
+ (&#34;LoanAmount&#34; (1; #13), 1.3018729840405285)]</pre>
 </div>
 
 </div>
@@ -15748,10 +15717,10 @@ Model compiled.
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[16]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[18]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Evaluate&quot;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">"Evaluate"</span><span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">)</span>
 <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">metrics_names</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
 </pre></div>
@@ -15767,30 +15736,26 @@ Model compiled.
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>Evaluate
-5/5 [==============================] - 0s 3ms/step - loss: 0.0000e+00 - precision_at_recall: 0.7654
+5/5 [==============================] - 0s 4ms/step - loss: 0.0000e+00 - precision: 0.7940 - recall: 0.5309
 </pre>
 </div>
 </div>
-
-<div class="jp-OutputArea-child">
-
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[16]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[18]:</div>
 
 
 
 
 <div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>{&#39;loss&#39;: 0.0, &#39;precision_at_recall&#39;: 0.7653631567955017}</pre>
+<pre>{&#39;loss&#39;: 0.0, &#39;precision&#39;: 0.7940298318862915, &#39;recall&#39;: 0.5309381484985352}</pre>
 </div>
 
 </div>
@@ -15804,13 +15769,13 @@ Model compiled.
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[17]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[19]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">)</span>
 <span class="n">y_true</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
 <span class="n">roc_auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The ROC AUC score is </span><span class="si">{</span><span class="n">roc_auc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"The ROC AUC score is </span><span class="si">{roc_auc}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">roc_auc</span><span class="o">=</span><span class="n">roc_auc</span><span class="p">))</span>
 </pre></div>
 
      </div>
@@ -15824,16 +15789,14 @@ Model compiled.
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>5/5 [==============================] - 0s 2ms/step
-The ROC AUC score is 0.8093902195608782
+The ROC AUC score is 0.8305668662674651
 </pre>
 </div>
 </div>
@@ -15847,13 +15810,14 @@ The ROC AUC score is 0.8093902195608782
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[18]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[20]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">y_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
 <span class="n">y_true</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;macro&#39;</span><span class="p">))</span>
+<span class="n">f1_score</span> <span class="o">=</span> <span class="n">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"F1 score is </span><span class="si">{f1_score}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f1_score</span><span class="o">=</span><span class="n">f1_score</span><span class="p">))</span>
 </pre></div>
 
      </div>
@@ -15867,18 +15831,16 @@ The ROC AUC score is 0.8093902195608782
 
 
 <div class="jp-OutputArea jp-Cell-outputArea">
-
 <div class="jp-OutputArea-child">
-
     
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>5/5 [==============================] - 0s 2ms/step
-[[859 141]
- [204 297]]
-0.7326778366441129
+[[872 128]
+ [200 301]]
+F1 score is 0.6473118279569892
 </pre>
 </div>
 </div>
