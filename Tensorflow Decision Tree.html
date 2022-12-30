@@ -14620,11 +14620,12 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">roc_auc_score</span><span class="p">,</span> <span class="n">f1_score</span><span class="p">,</span> <span class="n">confusion_matrix</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">roc_auc_score</span><span class="p">,</span> <span class="n">f1_score</span><span class="p">,</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">classification_report</span>
 <span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">import</span> <span class="nn">tensorflow_decision_forests</span> <span class="k">as</span> <span class="nn">tfdf</span>
 <span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">display</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Found TensorFlow Decision Forests v"</span> <span class="o">+</span> <span class="n">tfdf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 </pre></div>
 
@@ -15449,7 +15450,7 @@ Test data shape: (1501, 22)
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Maximum number of decision trees. The effective number of trained trees can be smaller if early stopping is enabled.</span>
 <span class="n">NUM_TREES</span> <span class="o">=</span> <span class="mi">250</span>
 <span class="c1"># Minimum number of examples in a node.</span>
-<span class="n">MIN_EXAMPLES</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="n">MIN_EXAMPLES</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="c1"># Maximum depth of the tree. max_depth=1 means that all trees will be roots.</span>
 <span class="n">MAX_DEPTH</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="c1"># Ratio of the dataset (sampling without replacement) used to train individual trees for the random sampling method.</span>
@@ -15481,7 +15482,14 @@ Test data shape: (1501, 22)
         <span class="n">validation_ratio</span><span class="o">=</span><span class="n">VALIDATION_RATIO</span><span class="p">,</span>
         <span class="n">task</span><span class="o">=</span><span class="n">tfdf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Task</span><span class="o">.</span><span class="n">CLASSIFICATION</span><span class="p">)</span>
 
-<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Precision</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Recall</span><span class="p">()])</span>
+<span class="n">METRICS</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">BinaryAccuracy</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'accuracy'</span><span class="p">),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Precision</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'precision'</span><span class="p">),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Recall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'recall'</span><span class="p">),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">'auc'</span><span class="p">)</span>
+<span class="p">]</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">metrics</span><span class="o">=</span><span class="n">METRICS</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -15501,7 +15509,7 @@ Test data shape: (1501, 22)
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Use /tmp/tmp0fo8igkh as temporary training directory
+<pre>Use /tmp/tmps26iex0r as temporary training directory
 </pre>
 </div>
 </div>
@@ -15563,11 +15571,11 @@ Lambda fuctions will be no more assumed to be used in the statement where they a
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Training dataset read in 0:00:02.535552. Found 3499 examples.
+<pre>Training dataset read in 0:00:02.540614. Found 3499 examples.
 Training model...
-Model trained in 0:00:00.038575
+Model trained in 0:00:00.038302
 Compiling model...
-WARNING:tensorflow:AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f35d1183280&gt; and will run it as-is.
+WARNING:tensorflow:AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7fb0bc64f310&gt; and will run it as-is.
 Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
 Cause: could not get source code
 To silence this warning, decorate the function with @tf.autograph.experimental.do_not_convert
@@ -15580,7 +15588,7 @@ To silence this warning, decorate the function with @tf.autograph.experimental.d
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr">
-<pre>WARNING:tensorflow:AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f35d1183280&gt; and will run it as-is.
+<pre>WARNING:tensorflow:AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7fb0bc64f310&gt; and will run it as-is.
 Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
 Cause: could not get source code
 To silence this warning, decorate the function with @tf.autograph.experimental.do_not_convert
@@ -15593,7 +15601,7 @@ To silence this warning, decorate the function with @tf.autograph.experimental.d
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>WARNING: AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7f35d1183280&gt; and will run it as-is.
+<pre>WARNING: AutoGraph could not transform &lt;function simple_ml_inference_op_with_handle at 0x7fb0bc64f310&gt; and will run it as-is.
 Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
 Cause: could not get source code
 To silence this warning, decorate the function with @tf.autograph.experimental.do_not_convert
@@ -15609,7 +15617,7 @@ Model compiled.
 
 
 <div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>&lt;keras.callbacks.History at 0x7f35d12995e0&gt;</pre>
+<pre>&lt;keras.callbacks.History at 0x7fb0bb10cd00&gt;</pre>
 </div>
 
 </div>
@@ -15674,10 +15682,10 @@ Model compiled.
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>Available variable importances:
+	 NUM_NODES
 	 NUM_AS_ROOT
 	 SUM_SCORE
 	 MEAN_MIN_DEPTH
-	 NUM_NODES
 </pre>
 </div>
 </div>
@@ -15689,21 +15697,23 @@ Model compiled.
 
 
 <div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>[(&#34;EmploymentDuration&#34; (4; #5), 256.6934921219945),
- (&#34;CheckingStatus&#34; (4; #1), 84.52491608262062),
- (&#34;LoanDuration&#34; (1; #14), 65.07411399111152),
- (&#34;OwnsProperty&#34; (4; #17), 41.19595599360764),
- (&#34;Age&#34; (1; #0), 36.2831989005208),
- (&#34;Sex&#34; (4; #18), 24.32262583076954),
+<pre>[(&#34;EmploymentDuration&#34; (4; #5), 262.3207722622901),
+ (&#34;CheckingStatus&#34; (4; #1), 85.83968667313457),
+ (&#34;OwnsProperty&#34; (4; #17), 75.54607001133263),
+ (&#34;CurrentResidenceDuration&#34; (1; #3), 26.592733262106776),
  (&#34;Housing&#34; (4; #9), 23.578131403774023),
- (&#34;LoanPurpose&#34; (4; #15), 21.54361115768552),
- (&#34;CurrentResidenceDuration&#34; (1; #3), 17.399549037218094),
- (&#34;OthersOnLoan&#34; (4; #16), 16.616584286093712),
- (&#34;ExistingCreditsCount&#34; (1; #6), 9.452959434129298),
- (&#34;Job&#34; (4; #12), 8.08851258456707),
- (&#34;InstallmentPlans&#34; (4; #11), 3.9501316845417023),
- (&#34;ExistingSavings&#34; (4; #7), 1.6278669834136963),
- (&#34;LoanAmount&#34; (1; #13), 1.3018729840405285)]</pre>
+ (&#34;Sex&#34; (4; #18), 15.025521432980895),
+ (&#34;LoanAmount&#34; (1; #13), 13.896707270294428),
+ (&#34;LoanPurpose&#34; (4; #15), 12.489044993184507),
+ (&#34;OthersOnLoan&#34; (4; #16), 11.976587047800422),
+ (&#34;Age&#34; (1; #0), 11.201651643961668),
+ (&#34;ExistingCreditsCount&#34; (1; #6), 9.841391801834106),
+ (&#34;LoanDuration&#34; (1; #14), 7.165437258780003),
+ (&#34;ExistingSavings&#34; (4; #7), 6.637440338730812),
+ (&#34;CreditHistory&#34; (4; #2), 6.1296785566955805),
+ (&#34;Dependents&#34; (1; #4), 4.095906391739845),
+ (&#34;Job&#34; (4; #12), 3.88046239875257),
+ (&#34;InstallmentPercent&#34; (1; #10), 2.4115801993757486)]</pre>
 </div>
 
 </div>
@@ -15743,7 +15753,7 @@ Model compiled.
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>Evaluate
-5/5 [==============================] - 0s 4ms/step - loss: 0.0000e+00 - precision: 0.7940 - recall: 0.5309
+5/5 [==============================] - 0s 6ms/step - loss: 0.0000e+00 - accuracy: 0.7848 - precision: 0.7602 - recall: 0.5190 - auc: 0.8044
 </pre>
 </div>
 </div>
@@ -15755,7 +15765,11 @@ Model compiled.
 
 
 <div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>{&#39;loss&#39;: 0.0, &#39;precision&#39;: 0.7940298318862915, &#39;recall&#39;: 0.5309381484985352}</pre>
+<pre>{&#39;loss&#39;: 0.0,
+ &#39;accuracy&#39;: 0.7848101258277893,
+ &#39;precision&#39;: 0.7602339386940002,
+ &#39;recall&#39;: 0.5189620852470398,
+ &#39;auc&#39;: 0.8043632507324219}</pre>
 </div>
 
 </div>
@@ -15774,8 +15788,14 @@ Model compiled.
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">)</span>
 <span class="n">y_true</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
-<span class="n">roc_auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"The ROC AUC score is </span><span class="si">{roc_auc}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">roc_auc</span><span class="o">=</span><span class="n">roc_auc</span><span class="p">))</span>
+<span class="n">auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
+<span class="n">gini</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">auc</span> <span class="o">-</span> <span class="mf">1.0</span>
+<span class="n">y_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">predictions</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+<span class="n">f1</span> <span class="o">=</span> <span class="n">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"The ROC AUC score is </span><span class="si">{auc}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">auc</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">auc</span><span class="p">,</span> <span class="mi">4</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Gini is </span><span class="si">{gini}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gini</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">gini</span><span class="p">,</span> <span class="mi">4</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"F1 score is </span><span class="si">{f1}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f1</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]))</span>
 </pre></div>
 
      </div>
@@ -15795,8 +15815,12 @@ Model compiled.
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>5/5 [==============================] - 0s 2ms/step
-The ROC AUC score is 0.8305668662674651
+<pre>5/5 [==============================] - 0s 3ms/step
+The ROC AUC score is 0.8044
+Gini is 0.6087
+F1 score is 0.6117
+[[271 230]
+ [114 886]]
 </pre>
 </div>
 </div>
@@ -15813,11 +15837,7 @@ The ROC AUC score is 0.8305668662674651
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[20]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">y_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
-<span class="n">y_true</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">))</span>
-<span class="n">f1_score</span> <span class="o">=</span> <span class="n">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"F1 score is </span><span class="si">{f1_score}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f1_score</span><span class="o">=</span><span class="n">f1_score</span><span class="p">))</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">classification_report</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">))</span>
 </pre></div>
 
      </div>
@@ -15837,10 +15857,15 @@ The ROC AUC score is 0.8305668662674651
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>5/5 [==============================] - 0s 2ms/step
-[[872 128]
- [200 301]]
-F1 score is 0.6473118279569892
+<pre>              precision    recall  f1-score   support
+
+           0       0.79      0.89      0.84      1000
+           1       0.70      0.54      0.61       501
+
+    accuracy                           0.77      1501
+   macro avg       0.75      0.71      0.72      1501
+weighted avg       0.76      0.77      0.76      1501
+
 </pre>
 </div>
 </div>
