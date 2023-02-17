@@ -22,6 +22,27 @@ test_dataframe = pd.DataFrame({'float64': [1.0, 3.0, 4, -5, 6],
                     'nones': [None, None, None, None, None]
                    })
 
+catCol = np.array(list('ABCD'))[np.random.randint(4, size=100)]
+catCol2 = pd.Categorical(catCol)
+numCol = np.random.random(size=100)
+intCol = np.random.randint(5, size=100)
+intCol2 = np.random.randint(30, size=100)
+datCol = pd.date_range(
+    '2018-01-01', '2018-01-31')[np.random.randint(31, size=100)]
+boolCol = np.array(list([True, False]))[np.random.randint(2, size=100)]
+constCol = np.ones(100)
+
+test_dataframe2 = pd.DataFrame({
+    'catCol': catCol,
+    'catCol2': catCol2,
+    'intCol': intCol,
+    'intCol2': intCol2,
+    'numCol': numCol,
+    'datCol': datCol,
+    'boolCol': boolCol,
+    'constCol_longlonglonglonglonglongName': constCol
+})
+
 def remove_all_by_values(list_obj, values):
     list_obj_rem = list_obj.copy()
     for value in set(values):
