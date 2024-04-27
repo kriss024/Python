@@ -2,12 +2,14 @@ import math
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import itertools
 from scipy import stats
 from sklearn.metrics import auc, roc_auc_score, roc_curve
 from pandas import DataFrame
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import tree
 from sklearn.cluster import KMeans
+import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
@@ -55,24 +57,108 @@ def woe_to_dict(df: DataFrame) -> dict:
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def auc_gini_model(df: pd.DataFrame,
-                   indep_vars: list,
-                   target_name: str,
+def auc_gini_model(df: DataFrame, 
+                   indep_vars: list, 
+                   target_name: str, 
                    model
-                   ) -> (float, float):
+                  )-> (float, float):
+    
+    y = df[target_name].values
 
-    y = df[target_name]
-    X = df[indep_vars]
+    x = df.loc[:, indep_vars]  
+    X = sm.add_constant(x, has_constant = "add")             
     preds = model.predict(X)
-
+    
     # Calculate the false positive rate (FPR), true positive rate (TPR), and thresholds
     fpr, tpr, thresholds = roc_curve(y, preds)
 
     # Calculate the AUC (Area Under the Curve)
     roc_auc = auc(fpr, tpr)
     gini = 2.0*roc_auc-1.0
-
+    
     return roc_auc, gini
+
+# ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+def auc_gini_score(df: DataFrame, 
+                   score_name: str, 
+                   target_name: str
+                  )-> (float, float):
+    
+    y = df[target_name].values
+
+    scores = df[score_name].values
+    
+    # Calculate the false positive rate (FPR), true positive rate (TPR), and thresholds
+    fpr, tpr, thresholds = roc_curve(y, scores)
+
+    # Calculate the AUC (Area Under the Curve)
+    roc_auc = auc(fpr, tpr)
+    
+    gini = 2.0*roc_auc-1.0
+    
+    return roc_auc, gini
+
+# ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+def correlation_matrix_plot(df: DataFrame, 
+                            indep_vars: list, 
+                            method: str = 'spearman'
+                           ) -> None:
+    corr_matrix = df[indep_vars].corr(method = method)
+    corr_matrix = corr_matrix.round(2)
+
+    cmap = sns.diverging_palette(500, 10, as_cmap = True)
+    ans = sns.heatmap(corr_matrix, 
+                      linewidths = 1, 
+                      center = 0, 
+                      vmin = -1, 
+                      vmax = 1, 
+                      annot = True, 
+                      cmap = cmap, 
+                      annot_kws={"size": 7.5})
+
+# ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+def vcramer_corr_matrix_plot(df: DataFrame, 
+                            indep_vars: list
+                           ) -> None:
+    
+    cols_size = len(indep_vars)
+    content = np.ones((cols_size, cols_size), dtype = float)
+    vcramer_corr = pd.DataFrame(content, index = indep_vars, columns = indep_vars)
+
+    all_combinations = list(itertools.combinations(indep_vars, 2))
+    for pair in all_combinations:
+        col1 = pair[0]
+        col2 = pair[1]
+
+        # Create a contingency table from the DataFrame
+        contingency_table = pd.crosstab(df[col1], df[col2])
+
+        # Calculate Chi-squared statistic
+        chi2, p, dof, expected = stats.chi2_contingency(contingency_table)
+
+        # Calculate normalization factors
+        n = contingency_table.sum().sum()  # Total sample size
+        min_dim = min(contingency_table.shape) - 1
+
+        # Cramer's V calculation
+        v = np.sqrt(chi2 / (n * min_dim))
+        vcramer_corr.loc[col1, col2] = v
+        vcramer_corr.loc[col2, col1] = v
+    
+    corr_matrix = vcramer_corr.round(2)
+
+    cmap = sns.diverging_palette(500, 10, as_cmap = True)
+    ans = sns.heatmap(corr_matrix, 
+                      linewidths = 1, 
+                      center = 0, 
+                      vmin = -1, 
+                      vmax = 1, 
+                      annot = True, 
+                      cmap = cmap, 
+                      annot_kws={"size": 7.5})
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -100,6 +186,8 @@ def psi_dataframe(expected: pd.Series,
                   buckets: int = 10
                   ) -> pd.DataFrame:
 
+    expected = expected.rename('initial')
+    actual = actual.rename('actual')
     points = list(np.arange(1, buckets, 1)/buckets)
     breakpoints = expected.quantile(points, interpolation='midpoint')
     breakpoints = breakpoints.values
