@@ -52,6 +52,7 @@ deactivate
 # Install Python Data Science Packages
 pip install requests cachetools six urllib3 scipy numpy pandas scikit-learn scikit-image scikit-plot openpyxl statsmodels pyarrow tables seaborn matplotlib bokeh pydotplus ipython tqdm
 # In Linux: pip install xlrd
+pip install plotly kaleido
 pip install 'polars[all]'
 pip install pingouin sidetable shap optbinning feature-engine
 pip install xgboost lightgbm catboost pycaret[full]
