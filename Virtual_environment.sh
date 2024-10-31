@@ -17,7 +17,7 @@ python --version
 cd your_project
 
 # Create an environment
-python -m venv .venv
+python -m venv venv
 # sudo apt install python3.10-venv
 # In Linux: python3 -m venv ./venv
 
@@ -45,7 +45,8 @@ pip index versions <package name>
 # Install packages from requirements.txt
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -U pip setuptools wheel
+python3 -m pip install --upgrade pip
+pip install -U setuptools wheel
 pip install -r requirements.txt
 deactivate
 
