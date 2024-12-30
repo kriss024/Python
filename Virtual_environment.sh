@@ -23,7 +23,7 @@ python -m venv venv
 
 # Activating a virtual environment
 venv\Scripts\activate.bat
-# In Linux: source ./venv/bin/activate
+# In Linux: source .venv/bin/activate
 
 # The PYTHONPATH variable has a value that is a string with a list of directories that Python should add to the sys.path directory list.
 # In Linux: export PYTHONPATH=/home/my_user/code
@@ -44,7 +44,7 @@ pip index versions <package name>
 
 # Install packages from requirements.txt
 python3 -m venv .venv
-source ./venv/bin/activate
+source .venv/bin/activate
 python3 -m pip install --upgrade pip
 pip install -U setuptools wheel
 pip install -r requirements.txt
