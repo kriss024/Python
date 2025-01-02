@@ -152,6 +152,9 @@ conda activate <env_name>
 python -m ipykernel install --user --name=<env_name>
 # In Linux: jupyter notebook --notebook-dir=/home/notebooks --ip='*' --port=8888 --no-browser --allow-root
 
+# To remove the Virtual Environment from Jupyter
+jupyter kernelspec uninstall <env_name>
+
 # Guide to Setting up PyHive with python3
 conda install pyhive sasl
 pip install sqlalchemy===1.3.0
