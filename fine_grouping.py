@@ -435,15 +435,14 @@ def coarse_classing_numeric(
 
         model.fit(X, y)
 
+        tree_rules = tree.export_text(model, feature_names= [column])
         points = []
-        text_representation = tree.export_text(model, feature_names= [column])
-        text_split = text_representation.splitlines()
-        for text in text_split:
-            if column in text:
+        for text in tree_rules.splitlines():
+            if feature in text:
                 text = text.strip()
                 s_pos = text.rfind(' ')
-                s_val = text[s_pos:]
-                f_val = float(s_val)
+                text = text[s_pos:]
+                f_val = float(text.strip())
                 points.append(f_val)
 
         points_round = [round(point, significance) for point in points]
