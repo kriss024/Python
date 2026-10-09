@@ -5,7 +5,6 @@ import seaborn as sns
 import itertools
 from scipy import stats
 from sklearn.metrics import auc, roc_auc_score, roc_curve
-from pandas import DataFrame
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import tree
 from sklearn.cluster import KMeans
@@ -20,23 +19,28 @@ def calculate_woe(df: pd.DataFrame,
                   ) -> (pd.DataFrame, float):
     # Create a DataFrame to store the counts and target variable distribution
     data = pd.DataFrame({'Category': df[cat_variable], 'Target': df[target_variable]})
-    total_count = data.shape[0]
+    data['Events'] = np.where(data['Target'] == 1, 1, 0)
+    data['Non-Events'] = np.where(data['Target'] != 1, 1, 0)
 
     # Calculate the total number of events and non-events
-    total_events = data['Target'].sum()
-    total_non_events = total_count - total_events
+    total_events = data['Events'].sum()
+    total_non_events = data['Non-Events'].sum()
+    total_count = total_events + total_non_events
 
     # Calculate the count and distribution of events and non-events for each category
-    category_counts = data.groupby('Category')['Target'].agg(['count', 'sum', 'mean']).reset_index()
-    category_counts.columns = ['Category', 'Count', 'Events', 'Bad_Rate']
-    category_counts['Events_Adjusted'] = np.where(category_counts['Events'] > 0, category_counts['Events'], 0.5)
-    category_counts['Non-Events'] = category_counts['Count'] - category_counts['Events']
+    category_counts = data.groupby('Category', as_index = False, dropna = False).agg({'Events': 'sum', 'Non-Events': 'sum'})
+    category_counts['Count'] = category_counts['Events'] + category_counts['Non-Events']
+    category_counts['Bad_Rate'] = category_counts['Events'] / category_counts['Count']
+    category_counts = category_counts[['Category', 'Count', 'Events', 'Bad_Rate', 'Non-Events']]
+    category_counts['Events_Adjusted'] = np.where(category_counts['Events'] > 0, category_counts['Events'], 0.01)
+    category_counts['Non-Events_Adjusted'] = np.where(category_counts['Non-Events'] > 0, category_counts['Non-Events'], 0.01)
 
     # Calculate the WoE and Information Value (IV) for each category
     category_counts['Event_Distribution'] = category_counts['Events_Adjusted'] / total_events
-    category_counts['Non-Event_Distribution'] = category_counts['Non-Events'] / total_non_events
+    category_counts['Non-Event_Distribution'] = category_counts['Non-Events_Adjusted'] / total_non_events
     category_counts['WoE'] = np.log(category_counts['Non-Event_Distribution'] / category_counts['Event_Distribution'])
     category_counts['IV'] = (category_counts['Non-Event_Distribution'] - category_counts['Event_Distribution']) * category_counts['WoE']
+    category_counts = category_counts.drop(['Events_Adjusted', 'Non-Events_Adjusted'], axis=1)
 
     # Sort the DataFrame by the category for better visualization
     category_counts = category_counts.sort_values(by='Bad_Rate', ascending = False)
@@ -44,11 +48,11 @@ def calculate_woe(df: pd.DataFrame,
     # Calculate the overall IV
     overall_iv = category_counts['IV'].sum()
 
-    return category_counts, overall_iv
+    return category_counts
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def woe_to_dict(df: DataFrame) -> dict:
+def woe_to_dict(df: pd.DataFrame) -> dict:
     woe_dict = {}
     for index, row in df.iterrows():
         woe_dict[row['Category']] = row['WoE']
@@ -57,73 +61,73 @@ def woe_to_dict(df: DataFrame) -> dict:
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def auc_gini_model(df: DataFrame, 
-                   indep_vars: list, 
-                   target_name: str, 
+def auc_gini_model(df: pd.DataFrame,
+                   indep_vars: list,
+                   target_name: str,
                    model
                   )-> (float, float):
-    
+
     y = df[target_name].values
 
-    x = df.loc[:, indep_vars]  
-    X = sm.add_constant(x, has_constant = "add")             
+    x = df.loc[:, indep_vars]
+    X = sm.add_constant(x, has_constant = "add")
     preds = model.predict(X)
-    
+
     # Calculate the false positive rate (FPR), true positive rate (TPR), and thresholds
     fpr, tpr, thresholds = roc_curve(y, preds)
 
     # Calculate the AUC (Area Under the Curve)
     roc_auc = auc(fpr, tpr)
     gini = 2.0*roc_auc-1.0
-    
+
     return roc_auc, gini
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def auc_gini_score(df: DataFrame, 
-                   score_name: str, 
+def auc_gini_score(df: pd.DataFrame,
+                   score_name: str,
                    target_name: str
                   )-> (float, float):
-    
+
     y = df[target_name].values
 
     scores = df[score_name].values
-    
+
     # Calculate the false positive rate (FPR), true positive rate (TPR), and thresholds
     fpr, tpr, thresholds = roc_curve(y, scores)
 
     # Calculate the AUC (Area Under the Curve)
     roc_auc = auc(fpr, tpr)
-    
+
     gini = 2.0*roc_auc-1.0
-    
+
     return roc_auc, gini
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def correlation_matrix_plot(df: DataFrame, 
-                            indep_vars: list, 
+def correlation_matrix_plot(df: pd.DataFrame,
+                            indep_vars: list,
                             method: str = 'spearman'
                            ) -> None:
     corr_matrix = df[indep_vars].corr(method = method)
     corr_matrix = corr_matrix.round(2)
 
     cmap = sns.diverging_palette(500, 10, as_cmap = True)
-    ans = sns.heatmap(corr_matrix, 
-                      linewidths = 1, 
-                      center = 0, 
-                      vmin = -1, 
-                      vmax = 1, 
-                      annot = True, 
-                      cmap = cmap, 
+    ans = sns.heatmap(corr_matrix,
+                      linewidths = 1,
+                      center = 0,
+                      vmin = -1,
+                      vmax = 1,
+                      annot = True,
+                      cmap = cmap,
                       annot_kws={"size": 7.5})
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def vcramer_corr_matrix_plot(df: DataFrame, 
+def vcramer_corr_matrix_plot(df: pd.DataFrame,
                             indep_vars: list
                            ) -> None:
-    
+
     cols_size = len(indep_vars)
     content = np.ones((cols_size, cols_size), dtype = float)
     vcramer_corr = pd.DataFrame(content, index = indep_vars, columns = indep_vars)
@@ -147,17 +151,17 @@ def vcramer_corr_matrix_plot(df: DataFrame,
         v = np.sqrt(chi2 / (n * min_dim))
         vcramer_corr.loc[col1, col2] = v
         vcramer_corr.loc[col2, col1] = v
-    
+
     corr_matrix = vcramer_corr.round(2)
 
     cmap = sns.diverging_palette(500, 10, as_cmap = True)
-    ans = sns.heatmap(corr_matrix, 
-                      linewidths = 1, 
-                      center = 0, 
-                      vmin = -1, 
-                      vmax = 1, 
-                      annot = True, 
-                      cmap = cmap, 
+    ans = sns.heatmap(corr_matrix,
+                      linewidths = 1,
+                      center = 0,
+                      vmin = -1,
+                      vmax = 1,
+                      annot = True,
+                      cmap = cmap,
                       annot_kws={"size": 7.5})
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
@@ -265,7 +269,7 @@ def plot_psi(expected: pd.Series,
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
 def unique_values(
-    df: DataFrame
+    df: pd.DataFrame
     , column: str
     ) -> (list, int):
 
@@ -273,6 +277,7 @@ def unique_values(
     df_not_null = df_selected[df_selected[column].notnull()]
     unique_values = df_not_null[column].unique()
     unique_values_list = unique_values.tolist()
+    unique_values_list.sort()
     len_values = len(unique_values_list)
 
     return unique_values_list, len_values
@@ -281,9 +286,10 @@ def unique_values(
 
 def generate_rules_numeric(
     column: str
-    , column_fc: str
+    , column_classing: str
     , quantiles: list
-    ) -> DataFrame:
+    , null_separate: bool = True
+    ) -> pd.DataFrame:
 
     low_range = quantiles[:-1]
     high_range = quantiles[1:]
@@ -292,37 +298,62 @@ def generate_rules_numeric(
     rules_dict = dict()
     all_rules = list()
 
-    null_class = 0
-    all_rules.append(f'{column} IS NULL')
-    rules_dict["Class"] = [null_class]
-    rules_dict["Low"] = [None]
-    rules_dict["High"] = [None]
+    if null_separate:
+        null_class = 0
+        all_rules.append(f'{column} IS NULL')
+        rules_dict["Class"] = [null_class]
+        rules_dict["Low"] = [None]
+        rules_dict["High"] = [None]
 
-    for i, (low, high) in enumerate(zip(low_range, high_range), start = 1):
+        for i, (low, high) in enumerate(zip(low_range, high_range), start = 1):
 
-        if i == 1:
-            all_rules.append(f'{column} <= {high}')
-            rules_dict["Class"].append(i)
-            rules_dict["Low"].append(low)
-            rules_dict["High"].append(high)
+            if i == 1:
+                all_rules.append(f'{column} <= {high}')
+                rules_dict["Class"].append(i)
+                rules_dict["Low"].append(low)
+                rules_dict["High"].append(high)
 
-        if (i > 1) and (i < last_elem):
-            all_rules.append(f'({column} > {low} AND {column} <= {high})')
-            rules_dict["Class"].append(i)
-            rules_dict["Low"].append(low)
-            rules_dict["High"].append(high)
+            if (i > 1) and (i < last_elem):
+                all_rules.append(f'({column} > {low} AND {column} <= {high})')
+                rules_dict["Class"].append(i)
+                rules_dict["Low"].append(low)
+                rules_dict["High"].append(high)
 
-        if (i > 1) and (i == last_elem):
-            all_rules.append(f'{column} > {low}')
-            rules_dict["Class"].append(i)
-            rules_dict["Low"].append(low)
-            rules_dict["High"].append(high)
+            if (i > 1) and (i == last_elem):
+                all_rules.append(f'{column} > {low}')
+                rules_dict["Class"].append(i)
+                rules_dict["Low"].append(low)
+                rules_dict["High"].append(high)
+    else:
+        rules_dict["Class"] = []
+        rules_dict["Low"] = []
+        rules_dict["High"] = []
+
+        for i, (low, high) in enumerate(zip(low_range, high_range), start = 1):
+
+            if i == 1:
+                all_rules.append(f'({column} <= {high} OR {column} IS NULL)')
+                rules_dict["Class"].append(i)
+                rules_dict["Low"].append(low)
+                rules_dict["High"].append(high)
+
+            if (i > 1) and (i < last_elem):
+                all_rules.append(f'({column} > {low} AND {column} <= {high})')
+                rules_dict["Class"].append(i)
+                rules_dict["Low"].append(low)
+                rules_dict["High"].append(high)
+
+            if (i > 1) and (i == last_elem):
+                all_rules.append(f'{column} > {low}')
+                rules_dict["Class"].append(i)
+                rules_dict["Low"].append(low)
+                rules_dict["High"].append(high)
 
     rules_dict["Attribute"] = all_rules
     rules_df = pd.DataFrame.from_dict(rules_dict)
     rules_df["Categories"] = None
     rules_df["Name"] = column
-    rules_df["ClassingName"] = column_fc
+    rules_df["ClassingName"] = column_classing
     rules_df["DataType"] = 'numeric'
     rules_df = rules_df[["Class", "Name", "ClassingName", "DataType", "Attribute", "Categories", "Low", "High"]]
 
@@ -331,11 +362,12 @@ def generate_rules_numeric(
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
 def fine_classing_numeric(
-    df: DataFrame
+    df: pd.DataFrame
     , column: str
-    , fine_classes: int = 20
+    , fine_classes: int = 10
     , significance: int = 5
-    ) -> DataFrame:
+    , null_separate: bool = False
+    ) -> pd.DataFrame:
 
     quantiles, quanti_len = unique_values(df, column)
 
@@ -355,61 +387,77 @@ def fine_classing_numeric(
 
     column_fc = 'fc_' + column
 
-    return generate_rules_numeric(column, column_fc, deduplicated_quantiles)
+    return generate_rules_numeric(column, column_fc, deduplicated_quantiles, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
 def generate_rules_string(
     column: str
     , column_fc: str
-    , df_groups: DataFrame
-    ) -> DataFrame:
+    , df_groups: pd.DataFrame
+    , null_separate: bool = True
+    ) -> pd.DataFrame:
 
-    df_groups["Class"] = df_groups.index + 1
-    df_groups["Categories"] = df_groups[column].apply(str)
-    df_groups["Attribute"] = column + " IN " + "(\'" + df_groups["Categories"] + "\')"
-    null_class = 0
-    attr = column + ' IS NULL'
-    null_row = {'Categories': [None], 'Class': [null_class], 'Attribute': [attr]}
-    null_case = pd.DataFrame.from_dict(null_row)
-    rules_df = pd.concat([df_groups, null_case]).sort_values(by='Class')
-    rules_df['Categories'] = rules_df['Categories'].apply(lambda x: [x])
-    rules_df['Name'] = column
-    rules_df['ClassingName'] = column_fc
-    rules_df['DataType'] = 'string'
-    rules_df['Low'] = np.NaN
-    rules_df['High'] = np.NaN
-    rules_df = rules_df[["Class", "Name", "ClassingName", "DataType", "Attribute", "Categories", "Low", "High"]]
+    if null_separate:
+        df_groups["Class"] = df_groups.index + 1
+        df_groups["Categories"] = df_groups[column].apply(str)
+        df_groups["Attribute"] = column + " IN " + "(\'" + df_groups["Categories"] + "\')"
+        null_class = 0
+        attr = column + ' IS NULL'
+        null_row = {'Categories': [None], 'Class': [null_class], 'Attribute': [attr]}
+        null_case = pd.DataFrame.from_dict(null_row)
+        rules_df = pd.concat([df_groups, null_case]).sort_values(by='Class')
+        rules_df['Categories'] = rules_df['Categories'].apply(lambda x: [x])
+        rules_df['Name'] = column
+        rules_df['ClassingName'] = column_fc
+        rules_df['DataType'] = 'string'
+        rules_df['Low'] = np.NaN
+        rules_df['High'] = np.NaN
+        rules_df = rules_df[["Class", "Name", "ClassingName", "DataType", "Attribute", "Categories", "Low", "High"]]
+    else:
+        df_groups["Class"] = df_groups.index + 1
+        df_groups["Categories"] = df_groups[column].apply(str)
+        df_groups["Attribute"] = np.where(df_groups["Class"] == 1, "(" + column + " IN " + "(\'" + df_groups["Categories"] + "\') OR " + column + " IS NULL)", column + " IN " + "(\'" + df_groups["Categories"] + "\')")
+        rules_df = df_groups.sort_values(by='Class')
+        rules_df['Categories'] = rules_df['Categories'].apply(lambda x: [x])
+        rules_df['Name'] = column
+        rules_df['ClassingName'] = column_fc
+        rules_df['DataType'] = 'string'
+        rules_df['Low'] = np.NaN
+        rules_df['High'] = np.NaN
+        rules_df = rules_df[["Class", "Name", "ClassingName", "DataType", "Attribute", "Categories", "Low", "High"]]
 
-    return rules_df.sort_values(by='Class')
+    return rules_df
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
 def fine_classing_string(
-    df: DataFrame
+    df: pd.DataFrame
     , column: str
     , target_col: str
+    , null_separate: bool = False
     , target_ascending: bool = False
-) -> DataFrame:
+) -> pd.DataFrame:
 
-    df_groups = df.groupby(column, dropna = True)[target_col].mean().reset_index()
+    df_groups = df.groupby(column, as_index = False, dropna = True)[target_col].mean()
     df_groups = df_groups.sort_values(by = target_col, ascending = target_ascending)
     df_groups = df_groups.reset_index(drop = True)
     column_fc = 'fc_' + column
 
-    return generate_rules_string(column, column_fc, df_groups)
+    return generate_rules_string(column, column_fc, df_groups, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
 def coarse_classing_numeric(
-    df: DataFrame
+    df: pd.DataFrame
     , column: str
     , target_col: str
-    , coarse_classes: int = 5
+    , coarse_classes: int = 3
     , criterion: str = 'gini'
     , cnst_min_prc: float = 0.05
     , significance: int = 5
-    ) -> DataFrame:
+    , null_separate: bool = False
+    ) -> pd.DataFrame:
 
     quantiles, quanti_len = unique_values(df, column)
 
@@ -431,14 +479,14 @@ def coarse_classing_numeric(
         model = DecisionTreeClassifier(criterion = criterion
                                     , max_leaf_nodes = coarse_classes
                                     , min_samples_leaf = min_obs_leaf
-                                    , random_state = 0)
+                                    , random_state = 42)
 
         model.fit(X, y)
 
         tree_rules = tree.export_text(model, feature_names= [column])
         points = []
         for text in tree_rules.splitlines():
-            if feature in text:
+            if column in text:
                 text = text.strip()
                 s_pos = text.rfind(' ')
                 text = text[s_pos:]
@@ -451,71 +499,45 @@ def coarse_classing_numeric(
         deduplicated_points = list(set(points_round))
         deduplicated_points.sort()
 
-    column_fc = 'fc_' + column
+    column_fc = 'cc_' + column
 
-    return generate_rules_numeric(column, column_fc, deduplicated_points)
-
-#~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
-
-def generate_rules_string2(
-    df_groups: DataFrame,
-    column: str,
-    column_fc: str
-    ) -> DataFrame:
-
-    df_groups["Class"] = df_groups.index + 1
-    df_groups["Categories"] = df_groups[column]
-    df_groups["CategoriesStr"] = df_groups["Categories"].apply(str).str[1:-1]  # Slice from index 1 (second character) to -1 (excluding last)
-    df_groups["Attribute"] = column + " IN " + "(" + df_groups["CategoriesStr"] + ")"
-    null_class = 0
-    attr = column + ' IS NULL'
-    null_row = {'Categories': [None], 'Class': [null_class], 'Attribute': [attr]}
-    null_case = pd.DataFrame.from_dict(null_row)
-    rules_df = pd.concat([df_groups, null_case]).sort_values(by='Class')
-    rules_df['Name'] = column
-    rules_df['ClassingName'] = column_fc
-    rules_df['DataType'] = 'string'
-    rules_df['Low'] = np.NaN
-    rules_df['High'] = np.NaN
-    rules_df = rules_df[["Class", "Name", "ClassingName", "DataType", "Attribute", "Categories", "Low", "High"]]
-
-    return rules_df.sort_values(by='Class')
+    return generate_rules_numeric(column, column_fc, deduplicated_points, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
 def coarse_classing_string(
-    df: DataFrame
+    df: pd.DataFrame
     , column: str
     , target_col: str
-    , coarse_classes: int = 5
+    , coarse_classes: int = 3
     , target_ascending: bool = False
-    ) -> DataFrame:
+    , null_separate: bool = False
+    ) -> pd.DataFrame:
 
     elements, elements_len = unique_values(df, column)
 
     if (elements_len <= coarse_classes):
-        return fine_classing_string(df, column, target_col, False)
+        return fine_classing_string(df, column, target_col, null_separate)
     else:
-        df_filtered = df[df[column].notnull()]
-        table, iv = calculate_woe(df_filtered, column, target_col)
-        table['WoE'] = table['WoE'].fillna(0)
+        woe_table = calculate_woe(df, column, target_col)
+        woe_table['WoE'] = woe_table['WoE'].fillna(0)
 
-        X = table['WoE'].values.reshape(-1, 1)
-        kmeans = KMeans(n_clusters = coarse_classes, random_state = 0, n_init = "auto").fit(X)
-        table['Cluster'] = kmeans.predict(X)
+        X = woe_table['WoE'].values.reshape(-1, 1)
+        kmeans = KMeans(n_clusters = coarse_classes, random_state = 42, n_init = "auto").fit(X)
+        woe_table['Cluster'] = kmeans.predict(X)
 
-        df_groups = table.groupby("Cluster", as_index = False, dropna = False).agg({"Count": ["sum"], "Events": ["sum"]})
-        df_groups.columns = ["Cluster", "Count", "Events"]
+        df_groups = woe_table.groupby("Cluster", as_index = False, dropna = False).agg({"Count": "sum", "Events": "sum"})
         df_groups["Bad_Rate"] =  df_groups["Events"] / df_groups["Count"]
         df_groups = df_groups.sort_values(by = "Bad_Rate", ascending = target_ascending)
         df_groups = df_groups.reset_index(drop = True)
         df_groups["Class"] = df_groups.index + 1
         df_groups = df_groups[["Cluster", "Class"]]
-        merged_table_class = pd.merge(table, df_groups, on="Cluster", how='inner')
-        df_agg = merged_table_class.groupby('Class')['Category'].agg(list).reset_index()
-        df_agg.columns = ["Class", column]
-        column_fc = 'fc_' + column
 
-        return generate_rules_string2(df_agg, column, column_fc)
+        df_groups = merged_woe_table_class.groupby('Class', as_index = False)['Category'].agg(list)
+        df_groups[column] = df_groups['Category'].str.join("', '")
+        df_groups = df_groups.drop('Category', axis = 1)
+        column_cc = 'cc_' + column
+
+        return generate_rules_string(column, column_cc, df_groups, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
