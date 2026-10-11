@@ -72,7 +72,8 @@ def woe_table_to_dict(df: pd.DataFrame) -> dict:
 
 def rules_table_to_sql(df: pd.DataFrame,
                        column: str = 'Class',
-                       else_val = 0
+                       else_val: float = -1
+                       new_line_char: str = '\t'
                        ) -> dict:
     sql_list = []
     sql_list.append('CASE')
@@ -88,7 +89,7 @@ def rules_table_to_sql(df: pd.DataFrame,
     classing_name = df['ClassingName'].iloc[0]
     sql_list.append(f'END AS {classing_name}')
 
-    return '\t'.join(sql_list)
+    return new_line_char.join(sql_list)
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -268,7 +269,7 @@ def psi_dataframe(expected: pd.Series,
     psi['psi'] = (psi['actual_distribution'] - psi['expected_distribution']) * np.log(psi['actual_distribution'] / psi['expected_distribution'])
     psi = psi.sort_values('bucket')
 
-    return psi
+    return psi.reset_index(drop=True)
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -313,7 +314,7 @@ def unique_values(
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def generate_rules_numeric(
+def create_numeric_classing_rules(
     column: str
     , column_classing: str
     , quantiles: list
@@ -385,8 +386,9 @@ def generate_rules_numeric(
     rules_df["ClassingName"] = column_classing
     rules_df["DataType"] = 'numeric'
     rules_df = rules_df[["Class", "Name", "ClassingName", "DataType", "Attribute", "Categories", "Low", "High"]]
+    rules_df = rules_df.sort_values(by='Class')
 
-    return rules_df.sort_values(by='Class')
+    return rules_df.reset_index(drop=True)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -416,11 +418,11 @@ def fine_classing_numeric(
 
     column_fc = 'fc_' + column
 
-    return generate_rules_numeric(column, column_fc, deduplicated_quantiles, null_separate)
+    return create_numeric_classing_rules(column, column_fc, deduplicated_quantiles, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def generate_rules_string(
+def create_string_classing_rules(
     column: str
     , column_fc: str
     , df_groups: pd.DataFrame
@@ -456,7 +458,9 @@ def generate_rules_string(
         rules_df['High'] = np.NaN
         rules_df = rules_df[["Class", "Name", "ClassingName", "DataType", "Attribute", "Categories", "Low", "High"]]
 
-    return rules_df
+    rules_df = rules_df.sort_values(by='Class')
+
+    return rules_df.reset_index(drop=True)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -473,7 +477,7 @@ def fine_classing_string(
     df_groups = df_groups.reset_index(drop = True)
     column_fc = 'fc_' + column
 
-    return generate_rules_string(column, column_fc, df_groups, null_separate)
+    return create_string_classing_rules(column, column_fc, df_groups, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -530,7 +534,7 @@ def coarse_classing_numeric(
 
     column_fc = 'cc_' + column
 
-    return generate_rules_numeric(column, column_fc, deduplicated_points, null_separate)
+    return create_numeric_classing_rules(column, column_fc, deduplicated_points, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -568,6 +572,6 @@ def coarse_classing_string(
         df_groups = df_groups.drop(['Category', 'Category_str'], axis = 1)
         column_cc = 'cc_' + column
 
-        return generate_rules_string(column, column_cc, df_groups, null_separate)
+        return create_string_classing_rules(column, column_cc, df_groups, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
