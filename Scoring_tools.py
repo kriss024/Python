@@ -1,3 +1,11 @@
+'''
+Created on 11-10-2026
+
+@author   : Krzysztof Bruszewski
+@email    : krzysztof.bruszewski@gmail.com
+@file     : Scoring_tools.py
+'''
+
 import math
 import numpy as np
 import pandas as pd
