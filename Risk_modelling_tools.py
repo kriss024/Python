@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 def calculate_woe(df: pd.DataFrame,
                   cat_variable: str,
                   target_variable: str
-                  ) -> (pd.DataFrame, float):
+                  ) -> pd.DataFrame:
+
     # Create a DataFrame to store the counts and target variable distribution
     data = pd.DataFrame({'Category': df[cat_variable], 'Target': df[target_variable]})
     data['Events'] = np.where(data['Target'] == 1, 1, 0)
@@ -48,11 +49,11 @@ def calculate_woe(df: pd.DataFrame,
     # Calculate the overall IV
     overall_iv = category_counts['IV'].sum()
 
-    return category_counts
+    return category_counts.reset_index(drop=True)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def woe_to_dict(df: pd.DataFrame) -> dict:
+def woe_table_to_dict(df: pd.DataFrame) -> dict:
     woe_dict = {}
     for index, row in df.iterrows():
         woe_dict[row['Category']] = row['WoE']
@@ -61,14 +62,35 @@ def woe_to_dict(df: pd.DataFrame) -> dict:
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def auc_gini_model(df: pd.DataFrame,
-                   indep_vars: list,
-                   target_name: str,
-                   model
-                  )-> (float, float):
+def rules_table_to_sql(df: pd.DataFrame,
+                       column: str = 'Class',
+                       else_val = 0
+                       ) -> dict:
+    sql_list = []
+    sql_list.append('CASE')
+
+    for index, row in df.iterrows():
+        output = row[column]
+        if not isinstance(output, str):
+            output = str(output)
+        sql_case = f"WHEN {row['Attribute']} THEN {output}"
+        sql_list.append(sql_case)
+
+    sql_list.append(f'ELSE {else_val}')
+    classing_name = df['ClassingName'].iloc[0]
+    sql_list.append(f'END AS {classing_name}')
+
+    return '\t'.join(sql_list)
+
+# ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+def auc_gini_statsmodel(df: pd.DataFrame,
+                        indep_vars: list,
+                        target_name: str,
+                        model
+                        )-> (float, float):
 
     y = df[target_name].values
-
     x = df.loc[:, indep_vars]
     X = sm.add_constant(x, has_constant = "add")
     preds = model.predict(X)
@@ -84,17 +106,16 @@ def auc_gini_model(df: pd.DataFrame,
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def auc_gini_score(df: pd.DataFrame,
-                   score_name: str,
+def auc_gini_pd(df: pd.DataFrame,
+                   pd_name: str,
                    target_name: str
                   )-> (float, float):
 
     y = df[target_name].values
-
-    scores = df[score_name].values
+    y_score = df[pd_name].values
 
     # Calculate the false positive rate (FPR), true positive rate (TPR), and thresholds
-    fpr, tpr, thresholds = roc_curve(y, scores)
+    fpr, tpr, thresholds = roc_curve(y, y_score)
 
     # Calculate the AUC (Area Under the Curve)
     roc_auc = auc(fpr, tpr)
@@ -400,8 +421,8 @@ def generate_rules_string(
 
     if null_separate:
         df_groups["Class"] = df_groups.index + 1
-        df_groups["Categories"] = df_groups[column].apply(str)
-        df_groups["Attribute"] = column + " IN " + "(\'" + df_groups["Categories"] + "\')"
+        df_groups["Categories"] = "'" + df_groups[column].apply(str) + "'"
+        df_groups["Attribute"] = column + " IN " + "(" + df_groups["Categories"] + ")"
         null_class = 0
         attr = column + ' IS NULL'
         null_row = {'Categories': [None], 'Class': [null_class], 'Attribute': [attr]}
@@ -416,8 +437,8 @@ def generate_rules_string(
         rules_df = rules_df[["Class", "Name", "ClassingName", "DataType", "Attribute", "Categories", "Low", "High"]]
     else:
         df_groups["Class"] = df_groups.index + 1
-        df_groups["Categories"] = df_groups[column].apply(str)
-        df_groups["Attribute"] = np.where(df_groups["Class"] == 1, "(" + column + " IN " + "(\'" + df_groups["Categories"] + "\') OR " + column + " IS NULL)", column + " IN " + "(\'" + df_groups["Categories"] + "\')")
+        df_groups["Categories"] = "'" + df_groups[column].apply(str) + "'"
+        df_groups["Attribute"] = np.where(df_groups["Class"] == 1, "(" + column + " IN " + "(" + df_groups["Categories"] + ") OR " + column + " IS NULL)", column + " IN " + "(" + df_groups["Categories"] + ")")
         rules_df = df_groups.sort_values(by='Class')
         rules_df['Categories'] = rules_df['Categories'].apply(lambda x: [x])
         rules_df['Name'] = column
@@ -532,10 +553,11 @@ def coarse_classing_string(
         df_groups = df_groups.reset_index(drop = True)
         df_groups["Class"] = df_groups.index + 1
         df_groups = df_groups[["Cluster", "Class"]]
-
-        df_groups = merged_woe_table_class.groupby('Class', as_index = False)['Category'].agg(list)
-        df_groups[column] = df_groups['Category'].str.join("', '")
-        df_groups = df_groups.drop('Category', axis = 1)
+        df_merged = pd.merge(woe_table, df_groups, on='Cluster', how='inner')
+        df_groups = df_merged.groupby('Class', as_index = False)['Category'].agg(list)
+        df_groups["Category_str"] = df_groups['Category'].apply(lambda x: ', '.join([f"'{str(i)}'" for i in x]))
+        df_groups[column] = df_groups["Category_str"].str.strip('"\'')
+        df_groups = df_groups.drop(['Category', 'Category_str'], axis = 1)
         column_cc = 'cc_' + column
 
         return generate_rules_string(column, column_cc, df_groups, null_separate)
