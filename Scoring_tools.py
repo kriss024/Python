@@ -300,16 +300,17 @@ def plot_psi(expected: pd.Series,
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def unique_values(
+def pandas_unique_values(
     df: pd.DataFrame
     , column: str
     ) -> (list, int):
 
-    df_selected = df[[column]]
-    df_not_null = df_selected[df_selected[column].notnull()]
-    unique_values = df_not_null[column].unique()
-    unique_values_list = unique_values.tolist()
-    unique_values_list.sort()
+    unique_values_list = df[column]\
+        .dropna()\
+        .drop_duplicates()\
+        .sort_values()\
+        .tolist()
+
     len_values = len(unique_values_list)
 
     return unique_values_list, len_values
@@ -402,7 +403,7 @@ def fine_classing_numeric(
     , null_separate: bool = False
     ) -> pd.DataFrame:
 
-    quantiles, quanti_len = unique_values(df, column)
+    quantiles, quanti_len = pandas_unique_values(df, column)
 
     if (quanti_len <= fine_classes):
         quantiles.append((-float("inf")))
@@ -549,7 +550,7 @@ def coarse_classing_string(
     , null_separate: bool = False
     ) -> pd.DataFrame:
 
-    elements, elements_len = unique_values(df, column)
+    elements, elements_len = pandas_unique_values(df, column)
 
     if (elements_len <= coarse_classes):
         return fine_classing_string(df, column, target_col, null_separate)
