@@ -18,6 +18,7 @@ from sklearn import tree
 from sklearn.cluster import KMeans
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from typing import Any
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -40,7 +41,8 @@ def calculate_woe(df: pd.DataFrame,
     category_counts = data.groupby('Category', as_index = False, dropna = False).agg({'Events': 'sum', 'Non-Events': 'sum'})
     category_counts['Count'] = category_counts['Events'] + category_counts['Non-Events']
     category_counts['Bad_Rate'] = category_counts['Events'] / category_counts['Count']
-    category_counts = category_counts[['Category', 'Count', 'Events', 'Bad_Rate', 'Non-Events']]
+    category_counts['Column_Name'] = cat_variable
+    category_counts = category_counts[['Column_Name', 'Category', 'Count', 'Events', 'Bad_Rate', 'Non-Events']]
     category_counts['Events_Adjusted'] = np.where(category_counts['Events'] > 0, category_counts['Events'], 0.01)
     category_counts['Non-Events_Adjusted'] = np.where(category_counts['Non-Events'] > 0, category_counts['Non-Events'], 0.01)
 
@@ -72,9 +74,9 @@ def woe_table_to_dict(df: pd.DataFrame) -> dict:
 
 def rules_table_to_sql(df: pd.DataFrame,
                        column: str = 'Class',
-                       else_val: float = -1
+                       else_val: Any = -1,
                        new_line_char: str = '\t'
-                       ) -> dict:
+                       ) -> str:
     sql_list = []
     sql_list.append('CASE')
 
