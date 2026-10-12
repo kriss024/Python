@@ -395,6 +395,28 @@ def create_numeric_classing_rules(
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
+def calculate_quantiles(
+    df: pd.DataFrame
+    , column: str
+    , buckets: int = 20
+    , significance: int = 5
+    ) -> list:
+
+    df_not_null = df[column].dropna()
+    points = list(np.arange(1, buckets, 1)/buckets)
+
+    breakpoints = df_not_null[column].quantile(points, interpolation = 'midpoint')
+    breakpoints = np.array(breakpoints)
+    breakpoints = np.round(breakpoints, decimals=significance)
+    breakpoints = np.append(breakpoints, -float("inf"))
+    breakpoints = np.append(breakpoints, float("inf"))
+    breakpoints = np.unique(breakpoints)
+    breakpoints = np.sort(breakpoints)
+
+    return breakpoints.tolist()
+
+#~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
 def fine_classing_numeric(
     df: pd.DataFrame
     , column: str
@@ -408,20 +430,14 @@ def fine_classing_numeric(
     if (quanti_len <= fine_classes):
         quantiles.append((-float("inf")))
         quantiles.append(float("inf"))
-        deduplicated_quantiles = list(set(quantiles))
-        deduplicated_quantiles.sort()
+        quantiles = list(set(quantiles))
+        quantiles.sort()
     else:
-        points = list(np.arange(1, fine_classes, 1)/fine_classes)
-        quantiles = df[column].quantile(points, interpolation = 'midpoint')
-        quantiles_round = [round(quantil, significance) for quantil in quantiles]
-        quantiles_round.append((-float("inf")))
-        quantiles_round.append(float("inf"))
-        deduplicated_quantiles = list(set(quantiles_round))
-        deduplicated_quantiles.sort()
+        quantiles = calculate_quantiles(df, column, fine_classes, significance)
 
     column_fc = 'fc_' + column
 
-    return create_numeric_classing_rules(column, column_fc, deduplicated_quantiles, null_separate)
+    return create_numeric_classing_rules(column, column_fc, quantiles, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
