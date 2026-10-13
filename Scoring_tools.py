@@ -39,10 +39,10 @@ def calculate_woe(df: pd.DataFrame,
 
     # Calculate the count and distribution of events and non-events for each category
     category_counts = data.groupby('Category', as_index = False, dropna = False).agg({'Events': 'sum', 'Non-Events': 'sum'})
+    category_counts['Name'] = cat_variable
     category_counts['Count'] = category_counts['Events'] + category_counts['Non-Events']
     category_counts['Bad_Rate'] = category_counts['Events'] / category_counts['Count']
-    category_counts['Column_Name'] = cat_variable
-    category_counts = category_counts[['Column_Name', 'Category', 'Count', 'Events', 'Bad_Rate', 'Non-Events']]
+    category_counts = category_counts[['Name', 'Category', 'Count', 'Events', 'Bad_Rate', 'Non-Events']]
     category_counts['Events_Adjusted'] = np.where(category_counts['Events'] > 0, category_counts['Events'], 0.01)
     category_counts['Non-Events_Adjusted'] = np.where(category_counts['Non-Events'] > 0, category_counts['Non-Events'], 0.01)
 
@@ -81,13 +81,16 @@ def rules_table_to_sql(df: pd.DataFrame,
     sql_list.append('CASE')
 
     for index, row in df.iterrows():
-        output = row[column]
-        if not isinstance(output, str):
-            output = str(output)
-        sql_case = f"WHEN {row['Attribute']} THEN {output}"
+        outcome = row[column]
+        if not isinstance(outcome, str):
+            outcome = str(outcome)
+
+        sql_case = f"WHEN {row['Attribute']} THEN {outcome}"
         sql_list.append(sql_case)
 
-    sql_list.append(f'ELSE {else_val}')
+    if else_val is not None:
+        sql_list.append(f'ELSE {else_val}')
+
     classing_name = df['ClassingName'].iloc[0]
     sql_list.append(f'END AS {classing_name}')
 
@@ -514,10 +517,10 @@ def coarse_classing_numeric(
     quantiles, quanti_len = unique_values(df, column)
 
     if (quanti_len <= coarse_classes):
-        quantiles.append((-float("inf")))
-        quantiles.append(float("inf"))
-        deduplicated_quantiles = list(set(quantiles))
-        deduplicated_quantiles.sort()
+        breakpoints = np.array(quantiles)
+        breakpoints = np.append(breakpoints, -float("inf"))
+        breakpoints = np.append(breakpoints, float("inf"))
+        breakpoints = np.sort(breakpoints)
     else:
         df_selected = df[[column, target_col]]
         df_not_null = df_selected[df_selected[column].notnull()]
@@ -536,24 +539,24 @@ def coarse_classing_numeric(
         model.fit(X, y)
 
         tree_rules = tree.export_text(model, feature_names= [column])
-        points = []
+        breakpoints = np.array([])
         for text in tree_rules.splitlines():
             if column in text:
                 text = text.strip()
                 s_pos = text.rfind(' ')
                 text = text[s_pos:]
                 f_val = float(text.strip())
-                points.append(f_val)
+                breakpoints = np.append(breakpoints, f_val)
 
-        points_round = [round(point, significance) for point in points]
-        points_round.append((-float("inf")))
-        points_round.append(float("inf"))
-        deduplicated_points = list(set(points_round))
-        deduplicated_points.sort()
+        breakpoints = np.round(breakpoints, decimals=significance)
+        breakpoints = np.append(breakpoints, -float("inf"))
+        breakpoints = np.append(breakpoints, float("inf"))
+        breakpoints = np.unique(breakpoints)
+        breakpoints = np.sort(breakpoints)
 
     column_fc = 'cc_' + column
 
-    return create_numeric_classing_rules(column, column_fc, deduplicated_points, null_separate)
+    return create_numeric_classing_rules(column, column_fc, breakpoints.tolist(), null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
