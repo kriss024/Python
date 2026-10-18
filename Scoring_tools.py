@@ -405,9 +405,9 @@ def calculate_quantiles(
     , significance: int = 5
     ) -> list:
 
-    df_not_null = df[column].dropna()
     points = list(np.arange(1, buckets, 1)/buckets)
 
+    df_not_null = df[column].dropna()
     breakpoints = df_not_null[column].quantile(points, interpolation = 'midpoint')
     breakpoints = np.array(breakpoints)
     breakpoints = np.round(breakpoints, decimals=significance)
@@ -431,10 +431,12 @@ def fine_classing_numeric(
     quantiles, quanti_len = pandas_unique_values(df, column)
 
     if (quanti_len <= fine_classes):
-        quantiles.append((-float("inf")))
-        quantiles.append(float("inf"))
-        quantiles = list(set(quantiles))
-        quantiles.sort()
+        breakpoints = np.array(quantiles)
+        breakpoints = np.append(breakpoints, -float("inf"))
+        breakpoints = np.append(breakpoints, float("inf"))
+        breakpoints = np.unique(breakpoints)
+        breakpoints = np.sort(breakpoints)
+        quantiles = breakpoints.tolist()
     else:
         quantiles = calculate_quantiles(df, column, fine_classes, significance)
 
