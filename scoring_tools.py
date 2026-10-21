@@ -3,7 +3,7 @@ Created on 11-10-2026
 
 @author   : Krzysztof Bruszewski
 @email    : krzysztof.bruszewski@gmail.com
-@file     : Scoring_tools.py
+@file     : scoring_tools.py
 '''
 
 import math
@@ -72,7 +72,7 @@ def woe_table_to_dict(df: pd.DataFrame) -> dict:
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def rules_table_to_sql(df: pd.DataFrame,
+def rules_table_to_sql(df_classing_woe: pd.DataFrame,
                        column: str = 'Class',
                        else_val: Any = -1,
                        new_line_char: str = '\t'
@@ -80,7 +80,7 @@ def rules_table_to_sql(df: pd.DataFrame,
     sql_list = []
     sql_list.append('CASE')
 
-    for index, row in df.iterrows():
+    for index, row in df_classing_woe.iterrows():
         outcome = row[column]
         if not isinstance(outcome, str):
             outcome = str(outcome)
@@ -91,7 +91,7 @@ def rules_table_to_sql(df: pd.DataFrame,
     if else_val is not None:
         sql_list.append(f'ELSE {else_val}')
 
-    classing_name = df['ClassingName'].iloc[0]
+    classing_name = df_classing_woe['ClassingName'].iloc[0]
     sql_list.append(f'END AS {classing_name}')
 
     return new_line_char.join(sql_list)
@@ -306,17 +306,10 @@ def plot_psi(expected: pd.Series,
 def pandas_unique_values(
     df: pd.DataFrame
     , column: str
-    ) -> (list, int):
+    ) -> list:
 
-    unique_values_list = df[column]\
-        .dropna()\
-        .drop_duplicates()\
-        .sort_values()\
-        .tolist()
-
-    len_values = len(unique_values_list)
-
-    return unique_values_list, len_values
+    return df[column]\
+        .dropna().unique().tolist()
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -406,17 +399,15 @@ def calculate_quantiles(
     ) -> list:
 
     points = list(np.arange(1, buckets, 1)/buckets)
+    quantiles = df[column].dropna().quantile(points, interpolation = 'midpoint')
+    quantiles = np.array(quantiles)
+    quantiles = np.round(quantiles, decimals=significance)
+    quantiles = np.append(quantiles, -float("inf"))
+    quantiles = np.append(quantiles, float("inf"))
+    quantiles = np.unique(quantiles)
+    quantiles = np.sort(quantiles)
 
-    df_not_null = df[column].dropna()
-    breakpoints = df_not_null[column].quantile(points, interpolation = 'midpoint')
-    breakpoints = np.array(breakpoints)
-    breakpoints = np.round(breakpoints, decimals=significance)
-    breakpoints = np.append(breakpoints, -float("inf"))
-    breakpoints = np.append(breakpoints, float("inf"))
-    breakpoints = np.unique(breakpoints)
-    breakpoints = np.sort(breakpoints)
-
-    return breakpoints.tolist()
+    return quantiles
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -428,21 +419,21 @@ def fine_classing_numeric(
     , null_separate: bool = False
     ) -> pd.DataFrame:
 
-    quantiles, quanti_len = pandas_unique_values(df, column)
+    unique_values = pandas_unique_values(df, column)
 
-    if (quanti_len <= fine_classes):
-        breakpoints = np.array(quantiles)
+    if (len(unique_values) <= fine_classes):
+        breakpoints = np.array(unique_values)
         breakpoints = np.append(breakpoints, -float("inf"))
         breakpoints = np.append(breakpoints, float("inf"))
         breakpoints = np.unique(breakpoints)
         breakpoints = np.sort(breakpoints)
-        quantiles = breakpoints.tolist()
+
+        return create_numeric_classing_rules(column, f"fc_{column}", breakpoints.tolist(), null_separate)
+
     else:
         quantiles = calculate_quantiles(df, column, fine_classes, significance)
 
-    column_fc = 'fc_' + column
-
-    return create_numeric_classing_rules(column, column_fc, quantiles, null_separate)
+        return create_numeric_classing_rules(column, f"fc_{column}", quantiles.tolist(), null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -499,9 +490,8 @@ def fine_classing_string(
     df_groups = df.groupby(column, as_index = False, dropna = True)[target_col].mean()
     df_groups = df_groups.sort_values(by = target_col, ascending = target_ascending)
     df_groups = df_groups.reset_index(drop = True)
-    column_fc = 'fc_' + column
 
-    return create_string_classing_rules(column, column_fc, df_groups, null_separate)
+    return create_string_classing_rules(column, f"fc_{column}", df_groups, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -516,13 +506,16 @@ def coarse_classing_numeric(
     , null_separate: bool = False
     ) -> pd.DataFrame:
 
-    quantiles, quanti_len = unique_values(df, column)
+    unique_values = pandas_unique_values(df, column)
 
-    if (quanti_len <= coarse_classes):
-        breakpoints = np.array(quantiles)
+    if (len(unique_values) <= coarse_classes):
+        breakpoints = np.array(unique_values)
         breakpoints = np.append(breakpoints, -float("inf"))
         breakpoints = np.append(breakpoints, float("inf"))
+        breakpoints = np.unique(breakpoints)
         breakpoints = np.sort(breakpoints)
+
+        return create_numeric_classing_rules(column, f"cc_{column}", breakpoints.tolist(), null_separate)
     else:
         df_selected = df[[column, target_col]]
         df_not_null = df_selected[df_selected[column].notnull()]
@@ -556,9 +549,7 @@ def coarse_classing_numeric(
         breakpoints = np.unique(breakpoints)
         breakpoints = np.sort(breakpoints)
 
-    column_fc = 'cc_' + column
-
-    return create_numeric_classing_rules(column, column_fc, breakpoints.tolist(), null_separate)
+        return create_numeric_classing_rules(column, f"cc_{column}", breakpoints.tolist(), null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
