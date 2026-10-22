@@ -439,7 +439,7 @@ def fine_classing_numeric(
 
 def create_string_classing_rules(
     column: str
-    , column_fc: str
+    , column_classing: str
     , df_groups: pd.DataFrame
     , null_separate: bool = True
     ) -> pd.DataFrame:
@@ -455,7 +455,7 @@ def create_string_classing_rules(
         rules_df = pd.concat([df_groups, null_case]).sort_values(by='Class')
         rules_df['Categories'] = rules_df['Categories'].apply(lambda x: [x])
         rules_df['Name'] = column
-        rules_df['ClassingName'] = column_fc
+        rules_df['ClassingName'] = column_classing
         rules_df['DataType'] = 'string'
         rules_df['Low'] = np.NaN
         rules_df['High'] = np.NaN
@@ -467,7 +467,7 @@ def create_string_classing_rules(
         rules_df = df_groups.sort_values(by='Class')
         rules_df['Categories'] = rules_df['Categories'].apply(lambda x: [x])
         rules_df['Name'] = column
-        rules_df['ClassingName'] = column_fc
+        rules_df['ClassingName'] = column_classing
         rules_df['DataType'] = 'string'
         rules_df['Low'] = np.NaN
         rules_df['High'] = np.NaN
@@ -562,10 +562,13 @@ def coarse_classing_string(
     , null_separate: bool = False
     ) -> pd.DataFrame:
 
-    elements, elements_len = pandas_unique_values(df, column)
+    unique_values = pandas_unique_values(df, column)
 
-    if (elements_len <= coarse_classes):
-        return fine_classing_string(df, column, target_col, null_separate)
+    if (len(unique_values) <= coarse_classes):
+        df_classing = fine_classing_string(df, column, target_col, null_separate)
+        df_classing["ClassingName"] = f"cc_{column}"
+
+        return df_classing
     else:
         woe_table = calculate_woe(df, column, target_col)
         woe_table['WoE'] = woe_table['WoE'].fillna(0)
@@ -585,8 +588,130 @@ def coarse_classing_string(
         df_groups["Category_str"] = df_groups['Category'].apply(lambda x: ', '.join([f"'{str(i)}'" for i in x]))
         df_groups[column] = df_groups["Category_str"].str.strip('"\'')
         df_groups = df_groups.drop(['Category', 'Category_str'], axis = 1)
-        column_cc = 'cc_' + column
 
-        return create_string_classing_rules(column, column_cc, df_groups, null_separate)
+        return create_string_classing_rules(column, f"cc_{column}", df_groups, null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+import statsmodels.api as sm
+
+def logistic_regression(df: pd.DataFrame,
+                        indep_vars: list,
+                        target_name: str
+                        ) -> sm.Logit:
+
+    x = df.loc[:, indep_vars]
+    X = sm.add_constant(x, has_constant = "add")
+    y = df[target_name].values
+    model = sm.Logit(y, X).fit(disp=0, method="newton", maxiter=100)
+
+    return model
+
+#~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+import logging
+import statsmodels.api as sm
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from scipy.stats.contingency import association
+from sklearn.metrics import roc_auc_score
+
+def logistic_regression_diagnostics(included_features: list,
+                                    df_train: pd.DataFrame,
+                                    df_test: pd.DataFrame,
+                                    target: str
+                                    ) -> (dict, sm.Logit):
+    """
+    Fit a logistic regression model for a selected feature set and compute
+    performance, coefficient, and multicollinearity diagnostics.
+    """
+    try:
+        feats = list(included_features)
+        X_train = df_train[feats]
+        y_train = df_train[target].values
+        X_test  = df_test[feats]
+        n_cols  = len(feats)
+
+        X_train_const = sm.add_constant(X_train, has_constant="add")
+        model = sm.Logit(y_train, X_train_const).fit(disp=0, method="newton", maxiter=100)
+
+        # Coefficients (including intercept)
+        params = model.params
+        pvalues = model.pvalues
+        max_coef = params.max()
+        max_p_value = pvalues.max()
+        all_neg_betas = int(max_coef < 0)
+
+        # Predictions
+        proba_train = model.predict(X_train_const)
+        proba_test  = model.predict(sm.add_constant(X_test, has_constant="add"))
+
+        # Discriminatory power
+        auc_train = roc_auc_score(y_train, proba_train)
+        auc_test  = roc_auc_score(df_test[target], proba_test)
+        gini_train = 2 * auc_train - 1
+        gini_test  = 2 * auc_test - 1
+        delta_gini = abs(gini_train - gini_test)
+
+        if len(included_features) < 2:
+            return {
+                "included_features": [", ".join(included_features)],
+                "n_included_features": n_cols,
+                "all_negative_betas": all_neg_betas,
+                "max_pvalue": float(max_p_value),
+                "gini_train": float(gini_train),
+                "gini_test": float(gini_test),
+                "delta_gini": float(delta_gini),
+                "max_vif": np.nan,
+                "max_con_index": np.nan,
+                "max_pearson": np.nan,
+                "max_cramer_v": np.nan,
+            }, model
+
+        # Multicollinearity
+        X = X_train.values.astype(float)
+        vif_list = [variance_inflation_factor(X, i) for i in range(X.shape[1])]
+        max_vif = max(vif_list) if vif_list else np.nan
+
+        # Pearson correlation (upper triangle)
+        corr = np.corrcoef(X, rowvar=False)
+        mask = np.triu(np.ones_like(corr, dtype=bool), k=1)
+        max_pearson = np.abs(corr[mask]).max() if mask.any() else 0.0
+
+        # Condition number (on column-normalised matrix)
+        norms = np.linalg.norm(X, axis=0)
+        norms[norms == 0] = 1.0          # safety
+        X_norm = X / norms
+        max_con_index = np.linalg.cond(X_norm)
+
+        # Cramér's V correlation (upper triangle)
+        corr = np.zeros((n_cols, n_cols))
+        np.fill_diagonal(corr, 1.0)
+
+        for i, col1 in enumerate(included_features):
+            for j, col2 in enumerate(included_features):
+                if i < j:
+                    contingency_table = pd.crosstab(X_train[col1], X_train[col2])
+                    cramer_v = association(contingency_table.values, method="cramer")
+                    corr[i, j] = cramer_v
+                    corr[j, i] = cramer_v
+
+        mask = np.triu(np.ones_like(corr, dtype=bool), k=1)
+        max_cramer_v = np.abs(corr[mask]).max() if mask.any() else 0.0
+
+        return {
+            "included_features": [", ".join(included_features)],
+            "n_included_features": n_cols,
+            "all_negative_betas": all_neg_betas,
+            "max_pvalue": float(max_p_value),
+            "gini_train": float(gini_train),
+            "gini_test": float(gini_test),
+            "delta_gini": float(delta_gini),
+            "max_vif": float(max_vif),
+            "max_con_index": float(max_con_index),
+            "max_pearson": float(max_pearson),
+            "max_cramer_v": float(max_cramer_v),
+        }, model
+
+    except Exception as e:
+        logging.warning("Model %s failed: %s", included_features, e)
+        return None, None
