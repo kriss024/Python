@@ -715,3 +715,204 @@ def logistic_regression_diagnostics(included_features: list,
     except Exception as e:
         logging.warning("Model %s failed: %s", included_features, e)
         return None, None
+
+#~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+def classing_plot(
+    df_train: pd.DataFrame,
+    df_test: pd.DataFrame,
+    column: str,
+    target: str,
+    max_bins: int = 10
+) -> None:
+
+    train_cp = df_train[[column, target]].copy()
+    test_cp = df_test[[column, target]].copy()
+
+    column_binned = f"{column}_binned"
+    missing_categories = "Missing"
+
+    is_numeric = None
+
+    numeric_cols = train_cp[[column]].select_dtypes(include="number").columns
+
+    if len(numeric_cols) > 0 and column.lower() == numeric_cols[0].lower():
+
+        unique_list = pandas_unique_values(train_cp, column)
+
+        if len(unique_list) <= max_bins:
+            bins = np.array(unique_list)
+            bins = np.append(bins, -float("inf"))
+            bins = np.append(bins, float("inf"))
+            bins = np.unique(bins)
+            bins = np.sort(bins)
+        else:
+            bins = calculate_quantiles(train_cp, column, max_bins)
+
+        train_cp[column_binned] = pd.cut(train_cp[column], bins=bins)
+
+        test_cp[column_binned] = pd.cut(test_cp[column], bins=bins)
+
+        is_numeric = True
+    else:
+        train_cp[column_binned] = train_cp[column].astype("category")
+
+        test_cp[column_binned] = test_cp[column].astype("category")
+
+        is_numeric = False
+
+    train_cp[column_binned] = train_cp[column_binned].cat.add_categories(
+        [missing_categories]
+    )
+
+    train_cp[column_binned] = train_cp[column_binned].fillna(missing_categories)
+
+    test_cp[column_binned] = test_cp[column_binned].cat.add_categories(
+        [missing_categories]
+    )
+    test_cp[column_binned] = test_cp[column_binned].fillna(missing_categories)
+
+    train_agg = train_cp.groupby(column_binned, as_index=False, observed=False).agg(
+        {target: ["count", "sum", "mean"]}
+    )
+
+    train_agg.columns = [column_binned, "count", "sum", "mean"]
+
+    test_agg = test_cp.groupby(column_binned, as_index=False, observed=False).agg(
+        {target: ["count", "sum", "mean"]}
+    )
+
+    test_agg.columns = [column_binned, "count", "sum", "mean"]
+
+    if is_numeric == False:
+
+        train_agg = train_agg.sort_values("mean")
+
+        test_agg = test_agg.sort_values("mean")
+
+    if missing_categories in train_agg[column_binned].cat.categories:
+
+        train_agg_no_missing = train_agg[train_agg[column_binned] != "Missing"].copy()
+        test_agg_no_missing = test_agg[test_agg[column_binned] != "Missing"].copy()
+
+        first_row = train_agg_no_missing.head(1).copy()
+        first_row["row"] = "first_row"
+
+        last_row = train_agg_no_missing.tail(1).copy()
+        last_row["row"] = "last_row"
+
+        df_first_last_combined = pd.concat([first_row, last_row], ignore_index=True)
+
+        df_train_agg_missing = train_agg[train_agg[column_binned] == "Missing"].rename(
+            columns={"mean": "mean_missing"}
+        ).fillna({"mean_missing": 0})
+
+        df_cross_join = pd.merge(
+            df_first_last_combined, df_train_agg_missing["mean_missing"], how="cross"
+        )
+
+        df_cross_join["diff"] = np.abs(df_cross_join["mean"] - df_cross_join["mean_missing"])
+        df_cross_join = df_cross_join.sort_values("diff", ascending=True).head(1)
+
+        train_agg_missing = train_agg[train_agg[column_binned] == "Missing"].copy()
+        test_agg_missing = test_agg[test_agg[column_binned] == "Missing"].copy()
+
+        belong = df_cross_join["row"][0]
+
+        if belong == "first_row":
+            train_agg = pd.concat(
+                [train_agg_missing, train_agg_no_missing], ignore_index=True
+            )
+            test_agg = pd.concat(
+                [test_agg_missing, test_agg_no_missing], ignore_index=True
+            )
+        elif belong == "last_row":
+            train_agg = pd.concat(
+                [train_agg_no_missing, train_agg_missing], ignore_index=True
+            )
+            test_agg = pd.concat(
+                [test_agg_no_missing, test_agg_missing], ignore_index=True
+            )
+        else:
+            pass
+
+
+    train_agg = train_agg.reset_index(drop=True).reset_index()
+    test_agg = test_agg.reset_index(drop=True).reset_index()
+
+    # Color definition
+    PALETTE = {
+        "bar": [129 / 255, 179 / 255, 92 / 255],
+        "line_train": [0 / 255, 145 / 255, 90 / 255],
+        "line_test": [0 / 255, 109 / 255, 67 / 255],
+        "ref_line": [129 / 255, 179 / 255, 92 / 255],
+        "count_bar": [120 / 255, 135 / 255, 138 / 255],
+    }
+
+    fig, ax1 = plt.subplots()
+
+    # 1. Add label to the bar plot
+    sns.barplot(
+        x="index",
+        y="count",
+        data=train_agg,
+        alpha=0.6,
+        ax=ax1,
+        color=PALETTE["count_bar"],
+        label="Count",
+    )
+    ax1.bar_label(ax1.containers[0])
+    ax1.set_xticks(range(len(train_agg[column_binned])))
+    ax1.set_xticklabels(train_agg[column_binned], rotation=45)
+    ax1.set(xlabel=None)
+    ax1.set_yscale("log")
+    ax1.set_ylabel("Count (Log Scale)")
+    ax1.set_title(column)
+    ax1.grid(True, alpha=0.3)
+
+    ax2 = ax1.twinx()
+
+    # 2. Add labels to the line plots
+    sns.lineplot(
+        x="index",
+        y="mean",
+        data=train_agg,
+        alpha=0.8,
+        ax=ax2,
+        linewidth=3,
+        color=PALETTE["line_train"],
+        label="Training set Default Rate",
+    )
+    sns.lineplot(
+        x="index",
+        y="mean",
+        data=test_agg,
+        alpha=0.8,
+        ax=ax2,
+        linewidth=3,
+        color=PALETTE["line_test"],
+        label="Test set Default Rate",
+    )
+
+    dr_ref_line = train_cp[target].mean()
+    ax2.axhline(
+        dr_ref_line,
+        linewidth=3,
+        alpha=0.7,
+        color=PALETTE["ref_line"],
+        label="Avg. Default Rate (Train)",
+    )
+    ax2.text(
+        0,
+        dr_ref_line * 1.06,
+        f"Avg. Default Rate (Train): {dr_ref_line * 100 :.2f}%",
+        color=PALETTE["ref_line"],
+    )
+    ax2.set(ylabel="Default Rate")
+
+    # 3. Combine legends from both axes
+    plt.legend(loc="upper right")
+    plt.show()
