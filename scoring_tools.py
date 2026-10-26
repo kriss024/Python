@@ -789,9 +789,36 @@ def classing_plot(
 
     if is_numeric == False:
 
-        train_agg = train_agg.sort_values("mean")
+        train_bin_mean = train_agg[[column_binned, 'mean']].fillna({'mean': 0.0}).copy()
+        test_bin_mean = test_agg[[column_binned, 'mean']].fillna({'mean': 0.0}).copy()
 
-        test_agg = test_agg.sort_values("mean")
+        bin_order = (
+            pd.concat([train_bin_mean, test_bin_mean], ignore_index=True)
+            .drop_duplicates(subset=[column_binned], keep='first')
+            .sort_values('mean')
+            .drop(columns='mean')
+            .reset_index(drop=True)
+            .reset_index(names='col_order')
+        )
+
+        train_agg_aligned = (
+            bin_order
+            .merge(train_agg, on=column_binned, how='left')
+            .fillna({'count': 0, 'sum': 0, 'mean': 0.0})
+            .sort_values('col_order')
+            .drop(columns='col_order')
+        )
+
+        test_agg_aligned = (
+            bin_order
+            .merge(test_agg, on=column_binned, how='left')
+            .fillna({'count': 0, 'sum': 0, 'mean': 0.0})
+            .sort_values('col_order')
+            .drop(columns='col_order')
+        )
+
+        train_agg = train_agg_aligned.copy()
+        test_agg = test_agg_aligned.copy()
 
     if missing_categories in train_agg[column_binned].cat.categories:
 
@@ -804,14 +831,14 @@ def classing_plot(
         last_row = train_agg_no_missing.tail(1).copy()
         last_row["row"] = "last_row"
 
-        df_first_last_combined = pd.concat([first_row, last_row], ignore_index=True)
+        df_first_last_union = pd.concat([first_row, last_row], ignore_index=True)
 
         df_train_agg_missing = train_agg[train_agg[column_binned] == "Missing"].rename(
             columns={"mean": "mean_missing"}
-        ).fillna({"mean_missing": 0})
+        ).fillna({"mean_missing": 0.0})
 
         df_cross_join = pd.merge(
-            df_first_last_combined, df_train_agg_missing["mean_missing"], how="cross"
+            df_first_last_union, df_train_agg_missing["mean_missing"], how="cross"
         )
 
         df_cross_join["diff"] = np.abs(df_cross_join["mean"] - df_cross_join["mean_missing"])
@@ -898,6 +925,7 @@ def classing_plot(
     )
 
     dr_ref_line = train_cp[target].mean()
+
     ax2.axhline(
         dr_ref_line,
         linewidth=3,
@@ -907,7 +935,7 @@ def classing_plot(
     )
     ax2.text(
         0,
-        dr_ref_line * 1.06,
+        dr_ref_line * 1.05,
         f"Avg. Default Rate (Train): {dr_ref_line * 100 :.2f}%",
         color=PALETTE["ref_line"],
     )
