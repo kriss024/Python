@@ -105,7 +105,7 @@ def auc_gini_statsmodel(df: pd.DataFrame,
                         )-> (float, float):
 
     y = df[target_name].values
-    x = df.loc[:, indep_vars]
+    x = df[indep_vars].copy()
     X = sm.add_constant(x, has_constant = "add")
     preds = model.predict(X)
 
@@ -944,3 +944,110 @@ def classing_plot(
     # 3. Combine legends from both axes
     plt.legend(loc="upper right")
     plt.show()
+
+#~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+def stepwise_logistic_regression(df: pd.DataFrame
+                                 , predictors: list
+                                 , target: str
+                                 , significance_level: float = 0.05):
+    """
+    Perform stepwise logistic regression (both forward and backward selection)
+
+    Parameters:
+    -----------
+    df : pandas DataFrame
+        The input DataFrame containing both predictors and the target variable.
+    predictors : list
+        A list of column names representing the predictor variables in the DataFrame.
+    target : str
+        The name of the column representing the target variable in the DataFrame.
+    significance_level : float, optional (default=0.05)
+        Significance level for adding or removing predictors.
+
+    Returns:
+    --------
+    dict
+        A dictionary containing the final model details:
+            'selected_predictors': A list of the predictor variables selected in the final model.
+            'summary': A pandas DataFrame with the final model summary.
+            'model': The final fitted statsmodels logistic regression model.
+    """
+
+    # Prepare the data
+    X_with_constant = sm.add_constant(df[predictors])
+    y = df[target].values
+
+    # Initialize variables
+    included = []
+    excluded = list(df.columns)
+
+    def get_model(X, y, predictors):
+        """Helper function to create logistic regression model"""
+        return sm.Logit(y, X[predictors]).fit(disp = 0, method = "newton")
+
+    def p_values(model):
+        """Extract p-values from the model"""
+        return model.pvalues
+
+    # convert summary to DataFrame
+    def summary_to_dataframe(model):
+        """Convert statsmodels summary to pandas DataFrame"""
+        summary_df = pd.DataFrame({
+            'Coefficient': model.params,
+            'Std Err': model.bse,
+            'z-value': model.tvalues,
+            'P>|z|': model.pvalues,
+            '[0.025': model.conf_int()[0],
+            '0.975]': model.conf_int()[1],
+        })
+        return summary_df
+
+    while excluded:
+        changed = False
+
+        # Forward selection
+        p_forward = {}
+        for feature in excluded:
+            try:
+                current_predictors = included + [feature]
+                model = get_model(X_with_constant, y, ['const'] + current_predictors)
+                p_forward[feature] = p_values(model)[feature]
+            except:
+                continue
+
+        # Add the most significant feature
+        if p_forward:
+            best_feature = min(p_forward, key=p_forward.get)
+            if p_forward[best_feature] < significance_level:
+                included.append(best_feature)
+                excluded.remove(best_feature)
+                changed = True
+                print(f"Added {best_feature} with p-value {p_forward[best_feature]}")
+
+        # Backward elimination
+        if included:
+            current_model = get_model(X_with_constant, y, ['const'] + included)
+            p_backward = p_values(current_model)[1:]  # Exclude constant
+
+            # Remove least significant feature if above threshold
+            worst_feature = max(zip(included, p_backward), key=lambda x: x[1])
+            if worst_feature[1] > significance_level:
+                included.remove(worst_feature[0])
+                excluded.append(worst_feature[0])
+                changed = True
+                print(f"Removed {worst_feature[0]} with p-value {worst_feature[1]}")
+
+        # Stop if no changes were made
+        if not changed:
+            break
+
+    # Final model
+    final_predictors = included
+    final_model = get_model(X_with_constant, y, ['const'] + final_predictors)
+
+    return {
+        'selected_predictors': final_predictors,
+        'summary': summary_to_dataframe(final_model),
+        'model': final_model
+    }
