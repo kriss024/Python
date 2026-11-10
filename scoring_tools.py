@@ -297,8 +297,17 @@ def plot_psi(expected: pd.Series,
     psi_df = psi_df[['bucket', 'expected_distribution', 'actual_distribution']]
     psi_df = psi_df.rename(columns={'bucket': 'Bucket', 'expected_distribution': 'Initial population', 'actual_distribution': 'New population'})
     psi_melted = psi_df.melt(id_vars='Bucket', var_name='Population', value_name='Percent')
-    p = sns.barplot(x='Bucket', y='Percent', hue='Population', data=psi_melted)
-    p.set(xlabel='Bucket', ylabel='Population percent')
+
+    sns.set_theme(style="white")
+    palette_map = {"Initial population": "#457B9D", "New population": "#E23E57"}
+    p = sns.barplot(x='Bucket',
+                    y='Percent',
+                    hue='Population',
+                    data=psi_melted,
+                    palette=palette_map,
+                    linewidth=0,
+                    alpha=0.90)
+    p.set(xlabel='Bucket', ylabel='Population density')
     sns.despine(left=True)
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
@@ -411,13 +420,12 @@ def calculate_quantiles(
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def fine_classing_numeric(
+def fine_classing_numeric_array(
     df: pd.DataFrame
     , column: str
     , fine_classes: int = 10
     , significance: int = 5
-    , null_separate: bool = False
-    ) -> pd.DataFrame:
+    ) -> np.array:
 
     unique_values = pandas_unique_values(df, column)
 
@@ -428,12 +436,26 @@ def fine_classing_numeric(
         breakpoints = np.unique(breakpoints)
         breakpoints = np.sort(breakpoints)
 
-        return create_numeric_classing_rules(column, f"fc_{column}", breakpoints.tolist(), null_separate)
+        return breakpoints
 
     else:
         quantiles = calculate_quantiles(df, column, fine_classes, significance)
 
-        return create_numeric_classing_rules(column, f"fc_{column}", quantiles.tolist(), null_separate)
+        return quantiles
+
+#~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+def fine_classing_numeric(
+    df: pd.DataFrame
+    , column: str
+    , fine_classes: int = 10
+    , significance: int = 5
+    , null_separate: bool = False
+    ) -> pd.DataFrame:
+
+    array = fine_classing_numeric_array(df, column, fine_classes, significance)
+
+    return create_numeric_classing_rules(column, f"fc_{column}", array.tolist(), null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -495,7 +517,7 @@ def fine_classing_string(
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
-def coarse_classing_numeric(
+def coarse_classing_numeric_array(
     df: pd.DataFrame
     , column: str
     , target_col: str
@@ -503,8 +525,7 @@ def coarse_classing_numeric(
     , criterion: str = 'gini'
     , cnst_min_prc: float = 0.05
     , significance: int = 5
-    , null_separate: bool = False
-    ) -> pd.DataFrame:
+    ) -> np.array:
 
     unique_values = pandas_unique_values(df, column)
 
@@ -515,7 +536,7 @@ def coarse_classing_numeric(
         breakpoints = np.unique(breakpoints)
         breakpoints = np.sort(breakpoints)
 
-        return create_numeric_classing_rules(column, f"cc_{column}", breakpoints.tolist(), null_separate)
+        return breakpoints
     else:
         df_selected = df[[column, target_col]]
         df_not_null = df_selected[df_selected[column].notnull()]
@@ -549,7 +570,24 @@ def coarse_classing_numeric(
         breakpoints = np.unique(breakpoints)
         breakpoints = np.sort(breakpoints)
 
-        return create_numeric_classing_rules(column, f"cc_{column}", breakpoints.tolist(), null_separate)
+        return breakpoints
+
+#~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+def coarse_classing_numeric(
+    df: pd.DataFrame
+    , column: str
+    , target_col: str
+    , coarse_classes: int = 3
+    , criterion: str = 'gini'
+    , cnst_min_prc: float = 0.05
+    , significance: int = 5
+    , null_separate: bool = False
+    ) -> pd.DataFrame:
+
+    array = coarse_classing_numeric_array(df, column, target_col, coarse_classes, criterion, cnst_min_prc, significance)
+
+    return create_numeric_classing_rules(column, f"cc_{column}", array.tolist(), null_separate)
 
 #~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
 
@@ -872,11 +910,11 @@ def classing_plot(
 
     # Color definition
     PALETTE = {
-        "bar": [129 / 255, 179 / 255, 92 / 255],
-        "line_train": [0 / 255, 145 / 255, 90 / 255],
-        "line_test": [0 / 255, 109 / 255, 67 / 255],
-        "ref_line": [129 / 255, 179 / 255, 92 / 255],
-        "count_bar": [120 / 255, 135 / 255, 138 / 255],
+        "bar": "#D3D3D3",
+        "line_train": "#457B9D",
+        "line_test": "#E23E57",
+        "ref_line": "#2A9D8F",
+        "count_bar": "#D3D3D3",
     }
 
     fig, ax1 = plt.subplots()
