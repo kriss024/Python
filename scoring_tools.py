@@ -290,10 +290,12 @@ def calculate_psi(expected: pd.Series,
 
 def plot_psi(expected: pd.Series,
             actual: pd.Series,
+            title_str: str = 'Variable name',
             buckets: int = 10
             ) -> None:
 
     psi_df = psi_dataframe(expected, actual, buckets)
+    psi_value = psi_df['psi'].sum()
     psi_df = psi_df[['bucket', 'expected_distribution', 'actual_distribution']]
     psi_df = psi_df.rename(columns={'bucket': 'Bucket', 'expected_distribution': 'Initial population', 'actual_distribution': 'New population'})
     psi_melted = psi_df.melt(id_vars='Bucket', var_name='Population', value_name='Percent')
@@ -307,7 +309,7 @@ def plot_psi(expected: pd.Series,
                     palette=palette_map,
                     linewidth=0,
                     alpha=0.90)
-    p.set(xlabel='Bucket', ylabel='Population density')
+    p.set(xlabel='Bucket', ylabel='Population density', title=f"{title_str}, PSI: {psi_value:.6f}")
     sns.despine(left=True)
 
 # ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
